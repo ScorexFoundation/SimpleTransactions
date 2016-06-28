@@ -7,6 +7,11 @@ version := "2.0.0-SNAPSHOT"
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
 libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
+  "org.scalatest" %% "scalatest" % "2.+" % "test",
+  "org.scalactic" %% "scalactic" % "2.+" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
+  "net.databinder.dispatch" %% "dispatch-core" % "+" % "test",
   "org.scorexfoundation" %% "scorex-basics" % "2.0.0-SNAPSHOT"
 )
 
@@ -38,7 +43,7 @@ licenses in ThisBuild := Seq("CC0" -> url("https://creativecommons.org/publicdom
 
 homepage in ThisBuild := Some(url("https://github.com/ScorexFoundation/Scorex"))
 
-pomExtra in ThisBuild :=
+pomExtra in ThisBuild := (
   <scm>
     <url>git@github.com:ScorexFoundation/Scorex.git</url>
     <connection>scm:git:git@github.com:ScorexFoundation/Scorex.git</connection>
@@ -54,6 +59,6 @@ pomExtra in ThisBuild :=
         <name>catena</name>
         <url>https://github.com/catena2w</url>
       </developer>
-    </developers>
+    </developers>)
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
