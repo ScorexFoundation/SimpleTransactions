@@ -4,13 +4,14 @@ import javax.ws.rs.Path
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
+import io.circe.generic.auto._
+import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.app.Application
 import scorex.transaction.SimpleTransactionModule
-import scorex.transaction.box.PublicKey25519Proposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
+
 import scala.util.Success
-import io.circe.generic.auto._
-import io.circe.syntax._
 
 @Path("/transactions")
 @Api(value = "/transactions", description = "Information about transactions")
@@ -21,7 +22,7 @@ case class TransactionsApiRoute(override val application: Application)(implicit 
 
   override lazy val route =
     pathPrefix("transactions") {
-      unconfirmed ~ address ~ adressLimit  //~ info
+      unconfirmed ~ address ~ adressLimit //~ info
     }
 
   //TODO implement general pagination
@@ -34,7 +35,7 @@ case class TransactionsApiRoute(override val application: Application)(implicit 
   def adressLimit: Route = {
     path("address" / Segment / "limit" / IntNumber) { case (address, limit) =>
       getJsonRoute {
-        PublicKey25519Proposition.validPubKey(address) match{
+        PublicKey25519Proposition.validPubKey(address) match {
           case Success(pubkey) =>
             transactionalModule
               .accountTransactions(pubkey)
@@ -56,7 +57,7 @@ case class TransactionsApiRoute(override val application: Application)(implicit 
   def address: Route = {
     path("address" / Segment) { case address =>
       getJsonRoute {
-        PublicKey25519Proposition.validPubKey(address) match{
+        PublicKey25519Proposition.validPubKey(address) match {
           case Success(pubkey) =>
             transactionalModule
               .accountTransactions(pubkey)

@@ -3,17 +3,18 @@ package scorex.transaction
 import java.util
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import io.circe.syntax._
 import scorex.crypto.encode.Base58
 import scorex.serialization.{BytesParseable, BytesSerializable, JsonSerializable}
 import scorex.transaction.LagonakiTransaction.TransactionType
 import scorex.transaction.account.PublicKey25519NoncedBox
-import scorex.transaction.box.{Box, PublicKey25519Proposition, PublicKeyProposition}
+import scorex.transaction.box.Box
+import scorex.transaction.box.proposition.{PublicKey25519Proposition, PublicKeyProposition}
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.{MinimalState, PrivateKey25519Holder}
 import shapeless.Sized
 
 import scala.util.{Failure, Success, Try}
-import io.circe.syntax._
 
 case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,

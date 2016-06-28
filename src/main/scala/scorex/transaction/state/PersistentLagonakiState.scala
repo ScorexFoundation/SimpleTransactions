@@ -2,7 +2,8 @@ package scorex.transaction.state
 
 import scorex.block.Block
 import scorex.transaction._
-import scorex.transaction.box.{Box, PublicKey25519Proposition}
+import scorex.transaction.box.Box
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.utils.ScorexLogging
 
 import scala.util.Try

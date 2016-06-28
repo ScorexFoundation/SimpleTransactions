@@ -12,7 +12,7 @@ import io.swagger.annotations._
 import scorex.api.http.ApiError._
 import scorex.app.Application
 import scorex.crypto.encode.Base58
-import scorex.transaction.box.PublicKey25519Proposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import shapeless.Sized
 

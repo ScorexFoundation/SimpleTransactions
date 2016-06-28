@@ -5,9 +5,9 @@ import io.circe.Json
 import scorex.api.http.ApiError._
 import scorex.api.http.SimpleTransactionalModuleErrors.{walletAddressNotExists, walletAlreadyExists, walletNotExist}
 import scorex.transaction.Wallet25519Only
-import scorex.transaction.box.PublicKey25519Proposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.PrivateKey25519Holder
-import scorex.wallet.Wallet
+import scorex.transaction.wallet.Wallet
 
 
 trait CommonTransactionApiFunctions extends CommonApiFunctions {

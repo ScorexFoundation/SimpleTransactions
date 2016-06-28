@@ -8,13 +8,13 @@ import scorex.network.message.Message
 import scorex.network.{Broadcast, NetworkController, TransactionalMessagesRepo}
 import scorex.settings.Settings
 import scorex.transaction.account.PublicKey25519NoncedBox
-import scorex.transaction.box.PublicKey25519Proposition
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.database.LagonakiUnconfirmedTransactionsDatabase
 import scorex.transaction.state.wallet.Payment
 import scorex.transaction.state.{PersistentLagonakiState, PrivateKey25519Holder, SecretGenerator25519}
+import scorex.transaction.wallet.Wallet
 import scorex.utils._
-import scorex.wallet.Wallet
 import shapeless.{HNil, Sized}
 
 import scala.concurrent.duration._
@@ -59,9 +59,9 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
 }
 
 class SimpleTransactionModule[CData <: ConsensusData, BType <: Block[PublicKey25519Proposition, CData, SimplestTransactionalData]](
-                              override val settings: Settings,
-                              consensusModule: ConsensusModule[PublicKey25519Proposition, CData, BType],
-                              networkController: ActorRef)
+                                                                                                                                    override val settings: Settings,
+                                                                                                                                    consensusModule: ConsensusModule[PublicKey25519Proposition, CData, BType],
+                                                                                                                                    networkController: ActorRef)
   extends TransactionModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
   with LagonakiUnconfirmedTransactionsDatabase
   with PersistentLagonakiState
