@@ -5,17 +5,16 @@ import javax.ws.rs.Path
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import io.swagger.annotations._
-import scorex.app.Application
 import scorex.crypto.encode.Base58
 import io.circe.syntax._
+import scorex.settings.Settings
+import scorex.transaction.Wallet25519Only
 
 
 @Path("/wallet")
 @Api(value = "/wallet", description = "Wallet-related calls")
-case class WalletApiRoute(override val application: Application)(implicit val context: ActorRefFactory)
+case class WalletApiRoute(wallet: Wallet25519Only, override val settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
-
-  private val wallet = application.transactionModule.wallet
 
   override lazy val route = root ~ seed
 
@@ -27,7 +26,6 @@ case class WalletApiRoute(override val application: Application)(implicit val co
         lazy val seedJs = ("seed" -> Base58.encode(wallet.seed)).asJson
         walletNotExists(wallet).getOrElse(seedJs)
       }
-
     }
   }
 

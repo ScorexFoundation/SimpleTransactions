@@ -2,7 +2,7 @@ package scorex.transaction
 
 import akka.actor.ActorRef
 import com.google.common.primitives.Ints
-import scorex.block.{Block, ConsensusData, TransactionalData}
+import scorex.block.{ConsensusData, TransactionalData}
 import scorex.consensus.ConsensusModule
 import scorex.network.message.Message
 import scorex.network.{Broadcast, NetworkController, TransactionalMessagesRepo}
@@ -15,22 +15,19 @@ import scorex.transaction.state.wallet.Payment
 import scorex.transaction.state.{PersistentLagonakiState, PrivateKey25519Holder, SecretGenerator25519}
 import scorex.transaction.wallet.Wallet
 import scorex.utils._
-import shapeless.{HNil, Sized}
+import shapeless.Sized
 
 import scala.concurrent.duration._
 import scala.util.Try
 
 
 class Wallet25519Only(settings: Settings) extends
-Wallet[PublicKey25519Proposition, PublicKey25519Proposition, SimpleTransactionModule[_, _]](settings, SecretGenerator25519)
+Wallet[PublicKey25519Proposition, PublicKey25519Proposition, SimpleTransactionModule](settings, SecretGenerator25519)
 
 case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
   extends TransactionalData[LagonakiTransaction] {
 
-  override type TransactionalHeaderFields = HNil
-
   override val mbTransactions: Option[Traversable[LagonakiTransaction]] = Some(transactions)
-  override val transactionalHeaderFields: TransactionalHeaderFields = HNil
 
   val TransactionSizeLength = 4
 
@@ -58,10 +55,7 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
   }
 }
 
-class SimpleTransactionModule[CData <: ConsensusData, BType <: Block[PublicKey25519Proposition, CData, SimplestTransactionalData]](
-                                                                                                                                    override val settings: Settings,
-                                                                                                                                    consensusModule: ConsensusModule[PublicKey25519Proposition, CData, BType],
-                                                                                                                                    networkController: ActorRef)
+class SimpleTransactionModule(override val settings: Settings, networkController: ActorRef)
   extends TransactionModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
   with LagonakiUnconfirmedTransactionsDatabase
   with PersistentLagonakiState
@@ -104,8 +98,8 @@ class SimpleTransactionModule[CData <: ConsensusData, BType <: Block[PublicKey25
     SimplestTransactionalData(txs)
   }
 
-  override def transactions(block: Block[PublicKey25519Proposition, _, SimplestTransactionalData]): Seq[LagonakiTransaction] =
-    block.transactionalData.transactions
+  override def transactions(blockData: SimplestTransactionalData): Seq[LagonakiTransaction] =
+    blockData.transactions
 
   override def packUnconfirmed(): SimplestTransactionalData =
     SimplestTransactionalData(filterValid(all().sortBy(-_.fee).take(MaxTransactionsPerBlock)))
@@ -117,15 +111,6 @@ class SimpleTransactionModule[CData <: ConsensusData, BType <: Block[PublicKey25
       case Some(unconfirmedTx) => remove(unconfirmedTx)
       case None =>
     })
-
-    val lastBlockTs = consensusModule.lastBlock.timestamp
-    all().foreach {
-      tx =>
-        if ((lastBlockTs - tx.timestamp).seconds > MaxTimeForUnconfirmed) remove(tx)
-    }
-
-    val txs = all()
-    txs.diff(filterValid(txs)).foreach(tx => remove(tx))
   }
 
   override def onNewOffchainTransaction(transaction: LagonakiTransaction): Unit = transaction match {
@@ -154,8 +139,8 @@ class SimpleTransactionModule[CData <: ConsensusData, BType <: Block[PublicKey25
     paymentTx
   }
 
-  override def isValid(block: Block[PublicKey25519Proposition, _, SimplestTransactionalData]): Boolean =
-    block.transactionalData.mbTransactions match {
+  override def isValid(blockData: SimplestTransactionalData): Boolean =
+    blockData.mbTransactions match {
       case Some(transactions: Seq[LagonakiTransaction]) =>
         areValid(transactions)
       case _ => false

@@ -8,6 +8,7 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.app.Application
+import scorex.settings.Settings
 import scorex.transaction.SimpleTransactionModule
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 
@@ -15,10 +16,9 @@ import scala.util.Success
 
 @Path("/transactions")
 @Api(value = "/transactions", description = "Information about transactions")
-case class TransactionsApiRoute(override val application: Application)(implicit val context: ActorRefFactory)
+case class TransactionsApiRoute(transactionalModule: SimpleTransactionModule, override val settings: Settings)
+                               (implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {
-
-  private val transactionalModule = application.transactionModule.asInstanceOf[SimpleTransactionModule[_, _]] //todo: aIO
 
   override lazy val route =
     pathPrefix("transactions") {

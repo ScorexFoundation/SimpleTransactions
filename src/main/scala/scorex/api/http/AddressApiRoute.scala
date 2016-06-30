@@ -10,8 +10,8 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.api.http.ApiError._
-import scorex.app.Application
 import scorex.crypto.encode.Base58
+import scorex.settings.Settings
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import shapeless.Sized
@@ -20,10 +20,9 @@ import scala.util.{Failure, Success, Try}
 
 @Path("/wallet")
 @Api(value = "/wallet/", description = "Info about wallet's accounts and other calls about addresses")
-case class AddressApiRoute(override val application: Application)(implicit val context: ActorRefFactory)
+case class AddressApiRoute(transactionalModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
 
-  private val transactionalModule = application.transactionModule.asInstanceOf[SimpleTransactionModule[_, _]] //todo: aIO
   private val wallet: Wallet25519Only = transactionalModule.wallet
 
 

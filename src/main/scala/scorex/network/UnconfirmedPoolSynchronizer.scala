@@ -1,21 +1,17 @@
 package scorex.network
 
-import scorex.app.Application
+import akka.actor.ActorRef
 import scorex.network.NetworkController.DataFromPeer
 import scorex.network.TransactionalMessagesRepo.TransactionMessageSpec
-import scorex.transaction.{SimpleTransactionModule, LagonakiTransaction}
+import scorex.transaction.{LagonakiTransaction, SimpleTransactionModule}
 import scorex.utils.ScorexLogging
 
 /**
   * Synchronizing transactions that are not in blockchain yet
   */
-class UnconfirmedPoolSynchronizer(application: Application) extends ViewSynchronizer with ScorexLogging {
+class UnconfirmedPoolSynchronizer(transactionModule:SimpleTransactionModule, override val networkControllerRef: ActorRef) extends ViewSynchronizer with ScorexLogging {
 
   override val messageSpecs = Seq(TransactionMessageSpec)
-
-  override val networkControllerRef = application.networkController
-
-  val transactionModule = application.transactionModule.asInstanceOf[SimpleTransactionModule[_, _]] //todo: aIO
 
   override def receive: Receive = {
     case DataFromPeer(msgId, tx: LagonakiTransaction, remote) if msgId == TransactionMessageSpec.messageCode =>

@@ -52,6 +52,8 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
           lazy val nonceValid = toTry(txnonce == box.nonce + 1, "tx nonce isnt' valid")
 
           nonceValid orElse balanceValid orElse signatureValid orElse feeValid
+
+        case Some(nonsense: Any) => Failure(new Exception(s"Wrong box: $nonsense"))
         case None => Failure(new Exception(s"No ${sender.address} found in state"))
       }
     }

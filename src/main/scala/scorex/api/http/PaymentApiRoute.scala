@@ -6,24 +6,22 @@ import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import io.swagger.annotations._
 import scorex.app.Application
-import scorex.transaction.{Wallet25519Only, SimpleTransactionModule}
+import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import scorex.transaction.state.wallet.Payment
 
 import scala.util.{Failure, Success}
-
 import io.circe.syntax._
 import io.circe.generic.auto._
 import io.circe.parser.decode
+import scorex.settings.Settings
 
 
 @Path("/payment")
 @Api(value = "/payment", description = "Payment operations.", position = 1)
-case class PaymentApiRoute(override val application: Application)(implicit val context: ActorRefFactory)
+case class PaymentApiRoute(transactionModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
 
-  // TODO asInstanceOf
-  implicit lazy val transactionModule: SimpleTransactionModule[_, _] = application.transactionModule.asInstanceOf[SimpleTransactionModule[_, _]]
-  lazy val wallet = application.transactionModule.wallet.asInstanceOf[Wallet25519Only] //todo: aIO
+  lazy val wallet: Wallet25519Only = transactionModule.wallet
 
   override lazy val route = payment
 
