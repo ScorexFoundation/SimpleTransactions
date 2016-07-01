@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.+" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test",
-  "org.scorexfoundation" %% "scorex-basics" % "2.0.0-M2"
+  "org.scorexfoundation" %% "scorex-basics" % "2.0.0-M3"
 )
 
 scalacOptions ++= Seq("-feature", "-deprecation")
