@@ -23,7 +23,7 @@ case class WalletApiRoute(wallet: Wallet25519Only, override val settings: Settin
   def seed: Route = {
     path("wallet" / "seed") {
       getJsonRoute {
-        lazy val seedJs = ("seed" -> Base58.encode(wallet.seed)).asJson
+        lazy val seedJs = ("seed" -> Base58.encode(wallet.seedOpt.get)).asJson
         walletNotExists(wallet).getOrElse(seedJs)
       }
     }

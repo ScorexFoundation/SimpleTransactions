@@ -4,7 +4,7 @@ package scorex.api.http
 import io.circe.Json
 import scorex.api.http.ApiError._
 import scorex.api.http.SimpleTransactionalModuleErrors.{walletAddressNotExists, walletAlreadyExists, walletNotExist}
-import scorex.transaction.Wallet25519Only
+import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.PrivateKey25519Holder
 import scorex.transaction.wallet.Wallet
@@ -12,7 +12,7 @@ import scorex.transaction.wallet.Wallet
 
 trait CommonTransactionApiFunctions extends CommonApiFunctions {
 
-  protected[api] def withPrivateKeyAccount(wallet: Wallet25519Only, address: String)
+  protected[api] def withPrivateKeyAccount(wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule], address: String)
                                           (action: PrivateKey25519Holder => Json): Json =
     walletNotExists(wallet).getOrElse {
       if (!PublicKey25519Proposition.validPubKey(address).isSuccess) {
@@ -25,9 +25,9 @@ trait CommonTransactionApiFunctions extends CommonApiFunctions {
       }
     }
 
-  protected[api] def walletExists()(implicit wallet: Wallet[_, _, _]): Option[Json] =
+  protected[api] def walletExists()(implicit wallet: Wallet[_, _]): Option[Json] =
     if (wallet.exists()) Some(walletAlreadyExists) else None
 
-  protected[api] def walletNotExists(wallet: Wallet[_, _, _]): Option[Json] =
+  protected[api] def walletNotExists(wallet: Wallet[_, _]): Option[Json] =
     if (!wallet.exists()) Some(walletNotExist) else None
 }

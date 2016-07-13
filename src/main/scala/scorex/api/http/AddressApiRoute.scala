@@ -23,7 +23,7 @@ import scala.util.{Failure, Success, Try}
 case class AddressApiRoute(transactionalModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
 
-  private val wallet: Wallet25519Only = transactionalModule.wallet
+  private val wallet = transactionalModule.wallet
 
 
   override lazy val route =
@@ -185,7 +185,7 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
       getJsonRoute {
         //TODO CHECK IF WALLET EXISTS
         withPrivateKeyAccount(wallet, address) { account =>
-          Map("address" -> address, "seed" -> Base58.encode(wallet.seed)).asJson
+          Map("address" -> address, "seed" -> Base58.encode(wallet.seedOpt.get)).asJson
         }
       }
     }

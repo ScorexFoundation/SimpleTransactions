@@ -21,7 +21,7 @@ import scorex.settings.Settings
 case class PaymentApiRoute(transactionModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
 
-  lazy val wallet: Wallet25519Only = transactionModule.wallet
+  lazy val wallet = transactionModule.wallet
 
   override lazy val route = payment
 

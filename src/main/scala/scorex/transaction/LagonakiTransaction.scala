@@ -16,6 +16,8 @@ import shapeless.Sized
 
 import scala.util.{Failure, Success, Try}
 
+import scorex.utils.toTry
+
 case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,
                                txnonce: Int,
