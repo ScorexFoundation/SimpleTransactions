@@ -1,8 +1,6 @@
 package scorex.transaction
 
 import akka.actor.ActorRef
-import scorex.network.message.Message
-import scorex.network.{Broadcast, NetworkController, TransactionalMessagesRepo}
 import scorex.settings.Settings
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.proposition.PublicKey25519Proposition
@@ -13,18 +11,14 @@ import scorex.transaction.state.{PersistentLagonakiState, PrivateKey25519Holder,
 import scorex.transaction.wallet.Wallet
 import scorex.utils._
 import shapeless.Sized
-
-import scala.concurrent.duration._
 import scala.util.Try
 
 
-class SimpleTransactionModule(override val settings: Settings, networkController: ActorRef)
-  extends TransactionModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
+class SimpleTransactionModule(override val settings: Settings, override val networkController: ActorRef)
+  extends TransactionalModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
   with LagonakiUnconfirmedTransactionsDatabase
   with PersistentLagonakiState
   with ScorexLogging {
-
-  import SimpleTransactionModule._
 
   override type SH = PrivateKey25519Holder
 
@@ -66,28 +60,6 @@ class SimpleTransactionModule(override val settings: Settings, networkController
   override def transactions(blockData: SimplestTransactionalData): Seq[LagonakiTransaction] =
     blockData.transactions
 
-  override def packUnconfirmed(): SimplestTransactionalData =
-    SimplestTransactionalData(filterValid(all().sortBy(-_.fee).take(MaxTransactionsPerBlock)))
-
-
-  //todo: check: clear unconfirmed txs on receiving a block
-  override def clearFromUnconfirmed(data: SimplestTransactionalData): Unit = {
-    data.transactions.foreach(tx => getBySignature(tx.signature.signature) match {
-      case Some(unconfirmedTx) => remove(unconfirmedTx)
-      case None =>
-    })
-  }
-
-  override def onNewOffchainTransaction(transaction: LagonakiTransaction): Unit = transaction match {
-    case tx: LagonakiTransaction =>
-      if (putIfNew(tx)) {
-        val spec = TransactionalMessagesRepo.TransactionMessageSpec
-        val ntwMsg = Message(spec, Right(tx), None)
-        networkController ! NetworkController.SendToNetwork(ntwMsg, Broadcast)
-      }
-    case _ => throw new Error("Wrong kind of transaction!")
-  }
-
   def createPayment(payment: Payment, wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule]): Option[LagonakiTransaction] = {
     wallet.privateKeyAccount(payment.sender).flatMap { sender: PrivateKey25519Holder =>
       PublicKey25519Proposition.validPubKey(payment.recipient).flatMap { rcp =>
@@ -110,9 +82,4 @@ class SimpleTransactionModule(override val settings: Settings, networkController
         areValid(transactions)
       case _ => false
     }
-}
-
-object SimpleTransactionModule {
-  val MaxTimeForUnconfirmed = 1.hour
-  val MaxTransactionsPerBlock = 100
 }
