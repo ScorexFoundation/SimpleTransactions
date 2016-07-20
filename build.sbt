@@ -2,7 +2,7 @@ scalaVersion := "2.11.8"
 
 name := "scorex-transaction"
 organization := "org.scorexfoundation"
-version := "2.0.0-M5"
+version := "2.0.0-M6"
 
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
@@ -12,7 +12,7 @@ libraryDependencies ++= Seq(
   "org.scalactic" %% "scalactic" % "2.+" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.+" % "test",
   "net.databinder.dispatch" %% "dispatch-core" % "+" % "test",
-  "org.scorexfoundation" %% "scorex-basics" % "2.0.0-M5"
+  "org.scorexfoundation" %% "scorex-basics" % "2.0.0-M6"
 )
 
 scalacOptions ++= Seq("-feature", "-deprecation")
