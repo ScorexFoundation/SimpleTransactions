@@ -20,7 +20,7 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
 
   override def accountTransactions(id: PublicKey25519Proposition): Array[LagonakiTransaction] = ???
 
-  override val version: Int = ???
+  override val version: Int = 0
 
   override def closedBox(boxId: Array[Byte]): Option[Box[PublicKey25519Proposition]] = ???
 
