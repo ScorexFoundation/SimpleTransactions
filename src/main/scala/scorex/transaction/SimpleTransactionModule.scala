@@ -82,4 +82,7 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
         areValid(transactions)
       case _ => false
     }
+
+  override def parseBytes(bytes: Array[Byte]): Try[SimplestTransactionalData] =
+    SimplestTransactionalData.parseBytes(bytes)
 }

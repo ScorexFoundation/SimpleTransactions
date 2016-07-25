@@ -1,7 +1,9 @@
 package scorex.transaction
 
 import com.google.common.primitives.Ints
+import io.circe.Json
 import scorex.block.TransactionalData
+import scorex.serialization.BytesParsable
 
 import scala.util.Try
 
@@ -12,13 +14,21 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
 
   val TransactionSizeLength = 4
 
+  override def json: Json = ???
+
+  override def bytes: Array[Byte] = ???
+}
+
+object SimplestTransactionalData extends BytesParsable[SimplestTransactionalData] {
+  val TransactionSizeLength = 4
+
   /**
-    * In Lagonaki, transaction-related data is just sequence of transactions. No Merkle-tree root of txs / state etc
-    *
-    * @param bytes - serialized sequence of transaction
-    * @return
-    */
-  def parse(bytes: Array[Byte]): Try[SimplestTransactionalData] = Try {
+   * In Lagonaki, transaction-related data is just sequence of transactions. No Merkle-tree root of txs / state etc
+   *
+   * @param bytes - serialized sequence of transaction
+   * @return
+   */
+  def parseBytes(bytes: Array[Byte]): Try[SimplestTransactionalData] = Try {
     bytes.isEmpty match {
       case true => SimplestTransactionalData(Seq())
       case false =>

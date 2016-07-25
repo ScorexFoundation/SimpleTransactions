@@ -5,7 +5,7 @@ import java.util
 import com.google.common.primitives.{Bytes, Ints, Longs}
 import io.circe.syntax._
 import scorex.crypto.encode.Base58
-import scorex.serialization.{BytesParseable, BytesSerializable, JsonSerializable}
+import scorex.serialization.{BytesParsable, BytesSerializable, JsonSerializable}
 import scorex.transaction.LagonakiTransaction.TransactionType
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
@@ -110,7 +110,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
     ).asJson
 }
 
-object LagonakiTransaction extends BytesParseable[LagonakiTransaction] {
+object LagonakiTransaction extends BytesParsable[LagonakiTransaction] {
 
   private val SenderLength = 32
   private val RecipientLength = 32
