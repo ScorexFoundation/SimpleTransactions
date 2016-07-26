@@ -29,7 +29,7 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
 
   override val wallet: W = new Wallet25519Only(settings)
 
-  val dirNameOpt: Option[String] = settings.dataDirOpt.map(_ + "/state.dat")
+  override val dirNameOpt: Option[String] = settings.dataDirOpt
 
   val InitialBalance = 60000000000L
 

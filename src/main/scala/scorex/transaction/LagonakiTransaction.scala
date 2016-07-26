@@ -28,8 +28,8 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
   extends Transaction[PublicKey25519Proposition, LagonakiTransaction] with BytesSerializable with JsonSerializable {
   override lazy val fee = fixedFee
 
-  override val boxesToRemove: Iterable[Box[PublicKey25519Proposition]] = ???
-  override val boxesToAdd: Iterable[Box[PublicKey25519Proposition]] = ???
+  override val boxesToRemove: Iterable[PublicKey25519NoncedBox] = ???
+  override val boxesToAdd: Iterable[PublicKey25519NoncedBox] = ???
 
   override def equals(other: Any): Boolean = other match {
     case tx: LagonakiTransaction => signature.signature.sameElements(tx.signature.signature)
