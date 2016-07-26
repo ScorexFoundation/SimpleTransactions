@@ -12,8 +12,8 @@ import io.swagger.annotations._
 import scorex.api.http.ApiError._
 import scorex.crypto.encode.Base58
 import scorex.settings.Settings
+import scorex.transaction.SimpleTransactionModule
 import scorex.transaction.box.proposition.PublicKey25519Proposition
-import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import shapeless.Sized
 
 import scala.util.{Failure, Success, Try}
@@ -45,8 +45,7 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
             if (!PublicKey25519Proposition.validPubKey(address).isSuccess) {
               ApiError.invalidAddress
             } else {
-              val deleted = wallet.privateKeyAccount(address).exists(account =>
-                wallet.deleteAccount(account))
+              val deleted = wallet.correspondingSecret(address).exists(account => wallet.deleteSecret(account))
               Map("deleted" -> deleted).asJson
             }
           }
@@ -263,7 +262,7 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
             if (!PublicKey25519Proposition.validPubKey(address).isSuccess) {
               ApiError.invalidAddress
             } else {
-              wallet.privateKeyAccount(address) match {
+              wallet.correspondingSecret(address) match {
                 case None => SimpleTransactionalModuleErrors.walletAddressNotExists
                 case Some(sh) =>
                   Try(sh.sign(message.getBytes(StandardCharsets.UTF_8))) match {

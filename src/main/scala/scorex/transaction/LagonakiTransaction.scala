@@ -22,10 +22,14 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,
                                txnonce: Int,
                                amount: Long,
-                               override val fee: Long,
+                               fixedFee: Long,
                                override val timestamp: Long,
                                signature: Signature25519)
   extends Transaction[PublicKey25519Proposition, LagonakiTransaction] with BytesSerializable with JsonSerializable {
+  override lazy val fee = fixedFee
+
+  override val boxesToRemove: Iterable[Box[PublicKey25519Proposition]] = ???
+  override val boxesToAdd: Iterable[Box[PublicKey25519Proposition]] = ???
 
   override def equals(other: Any): Boolean = other match {
     case tx: LagonakiTransaction => signature.signature.sameElements(tx.signature.signature)
@@ -64,7 +68,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
   def genesisChanges(): StateChanges[PublicKey25519Proposition] =
     StateChanges(Set(), Set(PublicKey25519NoncedBox(recipient, amount)), 0)
 
-  override def changes(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
+  /*override def changes(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
   : Try[StateChanges[PublicKey25519Proposition]] = {
     if (state.version == 0) Success(genesisChanges())
     else {
@@ -90,7 +94,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
       }
     }
   }
-
+*/
   override lazy val messageToSign: Array[Byte] =
     LagonakiTransaction.bytesToSign(timestamp, sender.publicKey.unsized,
       recipient.publicKey.unsized, txnonce, amount, fee)

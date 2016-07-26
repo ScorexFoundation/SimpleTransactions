@@ -4,7 +4,7 @@ package scorex.api.http
 import io.circe.Json
 import scorex.api.http.ApiError._
 import scorex.api.http.SimpleTransactionalModuleErrors.{walletAddressNotExists, walletAlreadyExists, walletNotExist}
-import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
+import scorex.transaction.SimpleTransactionModule
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.PrivateKey25519Holder
 import scorex.transaction.wallet.Wallet
@@ -18,7 +18,7 @@ trait CommonTransactionApiFunctions extends CommonApiFunctions {
       if (!PublicKey25519Proposition.validPubKey(address).isSuccess) {
         invalidAddress
       } else {
-        wallet.privateKeyAccount(address) match {
+        wallet.correspondingSecret(address) match {
           case None => walletAddressNotExists
           case Some(account) => action(account)
         }

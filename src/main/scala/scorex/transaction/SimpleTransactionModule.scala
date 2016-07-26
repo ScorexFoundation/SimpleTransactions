@@ -11,6 +11,7 @@ import scorex.transaction.state.{PersistentLagonakiState, PrivateKey25519Holder,
 import scorex.transaction.wallet.Wallet
 import scorex.utils._
 import shapeless.Sized
+
 import scala.util.Try
 
 
@@ -61,7 +62,7 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
     blockData.transactions
 
   def createPayment(payment: Payment, wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule]): Option[LagonakiTransaction] = {
-    wallet.privateKeyAccount(payment.sender).flatMap { sender: PrivateKey25519Holder =>
+    wallet.correspondingSecret(payment.sender).flatMap { sender: PrivateKey25519Holder =>
       PublicKey25519Proposition.validPubKey(payment.recipient).flatMap { rcp =>
         createPayment(sender, rcp, payment.amount, payment.fee)
       }.toOption
