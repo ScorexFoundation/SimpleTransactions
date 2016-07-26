@@ -118,7 +118,7 @@ object LagonakiTransaction extends BytesParsable[LagonakiTransaction] {
 
   private val SenderLength = 32
   private val RecipientLength = 32
-  private val NonceLength = 8
+  private val NonceLength = 4
   private val FeeLength = 8
   private val TimestampLength = 8
   private val AmountLength = 8
@@ -149,10 +149,10 @@ object LagonakiTransaction extends BytesParsable[LagonakiTransaction] {
       case txType: Byte if txType == TransactionType.LagonakiTransaction.id =>
         require(data.length >= BaseLength, "Data does not match base length")
 
-        var position = 0
+        var position = 1
 
         //READ TIMESTAMP
-        val timestampBytes = data.take(TimestampLength)
+        val timestampBytes = util.Arrays.copyOfRange(data, position, position + TimestampLength)
         val timestamp = Longs.fromByteArray(timestampBytes)
         position += TimestampLength
 
@@ -169,7 +169,7 @@ object LagonakiTransaction extends BytesParsable[LagonakiTransaction] {
         //READ NONCE
         val nonceBytes = util.Arrays.copyOfRange(data, position, position + NonceLength)
         val nonce = Ints.fromByteArray(nonceBytes)
-        position += AmountLength
+        position += NonceLength
 
         //READ AMOUNT
         val amountBytes = util.Arrays.copyOfRange(data, position, position + AmountLength)
@@ -199,6 +199,7 @@ object LagonakiTransaction extends BytesParsable[LagonakiTransaction] {
       recipientPubKey,
       Ints.toByteArray(txNonce),
       Longs.toByteArray(amount),
-      Longs.toByteArray(fee))
+      Longs.toByteArray(fee)
+    )
   }
 }

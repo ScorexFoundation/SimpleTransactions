@@ -1,5 +1,6 @@
 package scorex.transaction
 
+import com.google.common.primitives.Longs
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.transaction.state.SecretGenerator25519
@@ -81,12 +82,13 @@ class TransactionSpecification extends PropSpec
 
       txAfter.getClass.shouldBe(tx.getClass)
 
-      tx.signature shouldEqual txAfter.signature
-      tx.sender shouldEqual txAfter.sender
-      tx.recipient shouldEqual txAfter.recipient
       tx.timestamp shouldEqual txAfter.timestamp
+      tx.sender.address shouldEqual txAfter.sender.address
+      tx.recipient.address shouldEqual txAfter.recipient.address
+      tx.txnonce shouldEqual txAfter.txnonce
       tx.amount shouldEqual txAfter.amount
       tx.fee shouldEqual txAfter.fee
+      tx.signature.signature shouldEqual txAfter.signature.signature
 
       sender.verify(tx.messageToSign, txAfter.signature) should be(true)
       sender.verify(txAfter.messageToSign, txAfter.signature) should be(true)
