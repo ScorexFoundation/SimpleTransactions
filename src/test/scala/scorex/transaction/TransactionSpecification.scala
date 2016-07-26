@@ -60,7 +60,7 @@ class TransactionSpecification extends PropSpec
       tx.timestamp shouldEqual time
       tx.amount shouldEqual amount
       tx.fee shouldEqual fee
-      tx.sender shouldEqual sender
+      tx.sender.address shouldEqual sender.address
       tx.recipient shouldEqual recipient
     }
   }
