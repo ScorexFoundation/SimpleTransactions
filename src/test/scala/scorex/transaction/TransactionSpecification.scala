@@ -3,44 +3,32 @@ package scorex.transaction
 import com.google.common.primitives.Longs
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.SecretGenerator25519
 
 class TransactionSpecification extends PropSpec
-  with PropertyChecks
-  with GeneratorDrivenPropertyChecks
-  with Matchers {
+with PropertyChecks
+with GeneratorDrivenPropertyChecks
+with Matchers
+with TransactionGen {
 
   property("transaction signature should be valid in a valid flow") {
-    forAll { (senderSeed: Array[Byte],
-              recipientSeed: Array[Byte],
-              nonce: Int,
-              time: Long,
-              amount: Long,
-              fee: Long) =>
-      val sender = SecretGenerator25519.generateKeys(senderSeed)
-      val recipient = SecretGenerator25519.generateKeys(recipientSeed).publicCommitment
+    forAll(paymentGenerator) { tx: LagonakiTransaction =>
+      val sig = tx.signature
 
-      val tx = LagonakiTransaction(sender, recipient, nonce, amount, fee, time)
-      sender.verify(tx.messageToSign, tx.signature) should be(true)
+      sig.isValid(tx.sender, tx.messageToSign) shouldBe true
     }
   }
 
   property("wrong transaction signature should be invalid") {
-    forAll { (senderSeed: Array[Byte],
-              recipientSeed: Array[Byte],
-              nonce: Int,
-              time: Long,
-              amount: Long,
-              fee: Long) =>
-      val sender = SecretGenerator25519.generateKeys(senderSeed)
-      val recipient = SecretGenerator25519.generateKeys(recipientSeed).publicCommitment
+    forAll(paymentGenerator) { tx: LagonakiTransaction =>
+      val sig = tx.signature
 
-      val sig = LagonakiTransaction(sender, recipient, nonce, amount, fee, time).signature
-
-      sender.verify(LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time).messageToSign, sig) should be(false)
-      sender.verify(LagonakiTransaction(sender, recipient, nonce, amount + 1, fee, time).messageToSign, sig) should be(false)
-      sender.verify(LagonakiTransaction(sender, recipient, nonce, amount, fee + 1, time).messageToSign, sig) should be(false)
-      sender.verify(LagonakiTransaction(sender, recipient, nonce, amount, fee, time + 1).messageToSign, sig) should be(false)
+      sig.isValid(tx.sender, tx.copy(fixedFee = tx.fee + 1).messageToSign) shouldBe false
+      sig.isValid(tx.sender, tx.copy(amount = tx.amount + 1).messageToSign) shouldBe false
+      sig.isValid(tx.sender, tx.copy(timestamp = tx.timestamp + 1).messageToSign) shouldBe false
+      sig.isValid(tx.sender, tx.copy(txnonce = tx.txnonce + 1).messageToSign) shouldBe false
+      //TODO change sender/recepient
     }
   }
 
@@ -67,17 +55,8 @@ class TransactionSpecification extends PropSpec
   }
 
   property("bytes()/parse() roundtrip should preserve a transaction") {
-    forAll { (senderSeed: Array[Byte],
-              recipientSeed: Array[Byte],
-              nonce: Int,
-              time: Long,
-              amount: Long,
-              fee: Long) =>
+    forAll(paymentGenerator) { tx: LagonakiTransaction =>
 
-      val sender = SecretGenerator25519.generateKeys(senderSeed)
-      val recipient = SecretGenerator25519.generateKeys(recipientSeed).publicCommitment
-
-      val tx: LagonakiTransaction = LagonakiTransaction(sender, recipient, nonce, amount, fee, time)
       val txAfter = LagonakiTransaction.parseBytes(tx.bytes).get
 
       txAfter.getClass.shouldBe(tx.getClass)
@@ -90,9 +69,9 @@ class TransactionSpecification extends PropSpec
       tx.fee shouldEqual txAfter.fee
       tx.signature.signature shouldEqual txAfter.signature.signature
 
-      sender.verify(tx.messageToSign, txAfter.signature) should be(true)
-      sender.verify(txAfter.messageToSign, txAfter.signature) should be(true)
-      sender.verify(txAfter.messageToSign, tx.signature) should be(true)
+      txAfter.signature.isValid(tx.sender, tx.messageToSign) shouldBe true
+      tx.signature.isValid(tx.sender, tx.messageToSign) shouldBe true
+      txAfter.signature.isValid(txAfter.sender, tx.messageToSign) shouldBe true
     }
   }
 
