@@ -4,7 +4,6 @@ import java.nio.ByteBuffer
 
 import org.h2.mvstore.MVStore
 import scorex.block.{Block, TransactionalData}
-import scorex.crypto.encode.Base58
 import scorex.transaction._
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
@@ -35,12 +34,10 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
   }
   mvs.setVersionsToKeep(100)
 
-  protected lazy val heightMap = mvs.openMap[String, Long]("height")
+  protected lazy val heightMap = mvs.openMap[String, Int]("height")
 
   protected val stateMap = mvs.openMap[ByteBuffer, BoxValue]("state")
   protected val lastIds = mvs.openMap[ByteBuffer, ByteBuffer]("lastId")
-
-  override val version: Int = 0
 
   override def closedBox(boxId: BoxId): Option[Box[PublicKey25519Proposition]] = {
     Option(stateMap.get(boxId)).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
@@ -55,26 +52,14 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
 
   def processTransactions(txs: Seq[LagonakiTransaction], fees: Map[PublicKey25519Proposition, Long],
                           checkNegative: Boolean = true): Try[Unit] = Try {
-    val currentBoxes = txs.flatMap(tx => Seq(accountBox(tx.sender), accountBox(tx.recipient)).flatten)
-
-    currentBoxes.foreach { b =>
-      stateMap.remove(b.id)
-    }
     txs.foreach { tx =>
-      require(tx.sender.address != tx.recipient.address, "TODO catch")
-      val senderBox = currentBoxes.find(_.proposition.address == tx.sender.address) match {
-        case Some(b) if !checkNegative || b.value >= tx.amount + tx.fee =>
-          b.copy(value = b.value - tx.amount - tx.fee, nonce = tx.txnonce)
-        case None if !checkNegative => PublicKey25519NoncedBox(tx.sender, -tx.amount - tx.fee)
-        case _ => throw new Error(s"Sender ${tx.sender.address} balance is negative")
+      val changes = tx.changes(this).get
+      changes.toAppend.foreach { b =>
+        saveBox(b)
       }
-
-      val recepientBox = currentBoxes.find(_.proposition.address == tx.recipient.address)
-        .map(b => b.copy(value = b.value + tx.amount, nonce = b.nonce + 1))
-        .getOrElse(PublicKey25519NoncedBox(tx.recipient, tx.amount))
-
-      saveBox(senderBox)
-      saveBox(recepientBox)
+      changes.toRemove.foreach { b =>
+        stateMap.remove(b.id)
+      }
     }
     fees.foreach { m =>
       val minerBox = accountBox(m._1).map(b => b.copy(value = b.value + m._2, nonce = b.nonce + 1))
@@ -83,18 +68,20 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
     }
 
     mvs.commit()
-    mvs.setStoreVersion((incrementHeight % Int.MaxValue).toInt)
+    mvs.setStoreVersion(incrementVersion)
   }
 
-  private def saveBox(nb: PublicKey25519NoncedBox): BoxValue = {
+  private def saveBox(nb: Box[PublicKey25519Proposition]): BoxValue = {
     lastIds.put(ByteBuffer.wrap(nb.proposition.publicKey), ByteBuffer.wrap(nb.id))
 
     stateMap.put(ByteBuffer.wrap(nb.id), nb.bytes)
   }
 
-  private def incrementHeight: Long = synchronized {
-    val currentH = Option(heightMap.get("stateHeight")).getOrElse(0L)
-    heightMap.put("stateHeight", currentH + 1)
+  override def version: Int = Option(heightMap.get("stateHeight")).getOrElse(0)
+
+  private def incrementVersion: Int = synchronized {
+    val currentH = version
+    heightMap.put("stateHeight", version + 1)
     currentH + 1
   }
 

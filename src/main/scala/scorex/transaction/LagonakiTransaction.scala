@@ -8,13 +8,14 @@ import scorex.crypto.encode.Base58
 import scorex.serialization.{BytesParsable, BytesSerializable, JsonSerializable}
 import scorex.transaction.LagonakiTransaction.TransactionType
 import scorex.transaction.account.PublicKey25519NoncedBox
+import scorex.transaction.box.Box
 import scorex.transaction.box.proposition.{PublicKey25519Proposition, PublicKeyProposition}
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.{MinimalState, PrivateKey25519Holder}
 import scorex.utils.toTry
 import shapeless.Sized
 
-import scala.util.{Failure, Try}
+import scala.util.{Success, Failure, Try}
 
 case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,
@@ -25,9 +26,6 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                signature: Signature25519)
   extends Transaction[PublicKey25519Proposition, LagonakiTransaction] with BytesSerializable with JsonSerializable {
   override lazy val fee = fixedFee
-
-  override lazy val boxesToRemove: Iterable[PublicKey25519NoncedBox] = throw new Error("Unusable in account model")
-  override lazy val boxesToAdd: Iterable[PublicKey25519NoncedBox] = throw new Error("Unusable in account model")
 
   override def equals(other: Any): Boolean = other match {
     case tx: LagonakiTransaction => signature.signature.sameElements(tx.signature.signature)
@@ -66,7 +64,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
   def genesisChanges(): StateChanges[PublicKey25519Proposition] =
     StateChanges(Set(), Set(PublicKey25519NoncedBox(recipient, amount)), 0)
 
-  /*override def changes(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
+  override def changes(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
   : Try[StateChanges[PublicKey25519Proposition]] = {
     if (state.version == 0) Success(genesisChanges())
     else {
@@ -92,7 +90,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
       }
     }
   }
-*/
+
   override lazy val messageToSign: Array[Byte] =
     LagonakiTransaction.bytesToSign(timestamp, sender.publicKey.unsized,
       recipient.publicKey.unsized, txnonce, amount, fee)
