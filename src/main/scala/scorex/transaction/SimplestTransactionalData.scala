@@ -3,7 +3,7 @@ package scorex.transaction
 import com.google.common.primitives.Ints
 import io.circe.Json
 import scorex.block.TransactionalData
-import scorex.serialization.BytesParsable
+import scorex.serialization.BytesParseable
 
 import scala.util.Try
 
@@ -19,7 +19,7 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
   override def bytes: Array[Byte] = ???
 }
 
-object SimplestTransactionalData extends BytesParsable[SimplestTransactionalData] {
+object SimplestTransactionalData extends BytesParseable[SimplestTransactionalData] {
   val TransactionSizeLength = 4
 
   /**

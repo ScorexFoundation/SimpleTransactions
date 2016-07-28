@@ -1,7 +1,7 @@
 package scorex.transaction.account
 
 import com.google.common.primitives.{Ints, Longs}
-import scorex.serialization.BytesParsable
+import scorex.serialization.BytesParseable
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import shapeless.Sized
 
@@ -16,7 +16,7 @@ case class PublicKey25519NoncedBox(
     proposition.publicKey.unsized ++ Ints.toByteArray(nonce) ++ Longs.toByteArray(value)
 }
 
-object PublicKey25519NoncedBox extends BytesParsable[PublicKey25519NoncedBox] {
+object PublicKey25519NoncedBox extends BytesParseable[PublicKey25519NoncedBox] {
   def apply(proposition: PublicKey25519Proposition, value: Long): PublicKey25519NoncedBox =
     PublicKey25519NoncedBox(proposition, 0, value)
 
