@@ -11,7 +11,7 @@ import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
 import scorex.transaction.box.proposition.{PublicKey25519Proposition, PublicKeyProposition}
 import scorex.transaction.proof.Signature25519
-import scorex.transaction.state.{MinimalState, PrivateKey25519Holder}
+import scorex.transaction.state.{PersistentLagonakiState, MinimalState, PrivateKey25519Holder}
 import scorex.utils.toTry
 import shapeless.Sized
 
@@ -76,10 +76,10 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
           val newSender = oldSender.copy(value = oldSender.value - amount - fee, nonce = oldSender.nonce + 1)
           require(newSender.value >= 0)
 
-          val oldRcvrOpt = state.closedBox(recipient.id) //TODO get blanace
-          val newRcvr = oldRcvrOpt.getOrElse {
-              PublicKey25519NoncedBox(recipient, amount)
-            }
+          val oldRcvrOpt = state.asInstanceOf[PersistentLagonakiState].accountBox(recipient)
+          val newRcvr:Box[PublicKey25519Proposition]= oldRcvrOpt.map(o => o.copy(value = o.value + amount)).getOrElse {
+            PublicKey25519NoncedBox(recipient, amount)
+          }
 
           val toRemove: Set[Box[PublicKey25519Proposition]] = oldRcvrOpt match {
             case Some(oldRcvr) => Set(oldSender, oldRcvr)

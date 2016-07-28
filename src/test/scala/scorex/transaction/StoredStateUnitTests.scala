@@ -25,7 +25,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
     }
   })
   val state = new SimpleTransactionModule(settings, nc)
-  val GenesisBalance =  Long.MaxValue - 100
+  val GenesisBalance = Long.MaxValue - 100
 
   property("State change genesis") {
     val tx = LagonakiTransaction(genesisAcc, genesisAcc.publicCommitment, 0, GenesisBalance, 0, 0L)
@@ -50,8 +50,8 @@ with PrivateMethodTester with OptionValues with TransactionGen {
   property("State change sender and recipient balance") {
     forAll { (amountR: Long, feeR: Long, recSeed: Array[Byte]) =>
       val recipient = SecretGenerator25519.generateKeys(recSeed)
-      val amount = 1
-      val fee = Math.abs(feeR)
+      val amount = Math.abs(amountR) % (state.balance(genesisAcc.publicCommitment) / 400)
+      val fee = Math.abs(feeR) % (state.balance(genesisAcc.publicCommitment) / 400)
       whenever(fee > 0 && amount > 0 && amount + fee > 0 &&
         recipient.address != genesisAcc.address && state.balance(genesisAcc.publicCommitment) / 2 > (fee + amount)) {
 
@@ -62,11 +62,32 @@ with PrivateMethodTester with OptionValues with TransactionGen {
         val oldS = state.balance(tx.sender)
         val oldR = state.balance(tx.recipient)
         state.processTransactions(Seq(tx), Map()).get
-        val newS = state.balance(tx.sender)
         state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
         state.balance(tx.recipient) shouldBe (oldR + tx.amount)
       }
     }
   }
+
+  property("State changes for transactions to existing address") {
+    val recipient = SecretGenerator25519.generateKeys(Random.randomBytes(32))
+    forAll { (amountR: Long, feeR: Long) =>
+      val amount = Math.abs(amountR) % (state.balance(genesisAcc.publicCommitment) / 400)
+      val fee = Math.abs(feeR) % (state.balance(genesisAcc.publicCommitment) / 400)
+      whenever(fee > 0 && amount > 0 && amount + fee > 0 &&
+        recipient.address != genesisAcc.address && state.balance(genesisAcc.publicCommitment) / 2 > (fee + amount)) {
+
+        val tx = state.createPayment(genesisAcc, recipient.publicCommitment, amount, fee).get
+
+        tx.validate(state).isSuccess shouldBe true
+
+        val oldS = state.balance(tx.sender)
+        val oldR = state.balance(tx.recipient)
+        state.processTransactions(Seq(tx), Map()).get
+        state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
+        state.balance(tx.recipient) shouldBe (oldR + tx.amount)
+      }
+    }
+  }
+
 
 }
