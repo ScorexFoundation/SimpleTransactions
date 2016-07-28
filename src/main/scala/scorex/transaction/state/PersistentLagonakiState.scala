@@ -40,7 +40,7 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
   protected val lastIds = mvs.openMap[ByteBuffer, ByteBuffer]("lastId")
 
   override def closedBox(boxId: BoxId): Option[Box[PublicKey25519Proposition]] = {
-    Option(stateMap.get(boxId)).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
+    Option(stateMap.get(ByteBuffer.wrap(boxId))).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }
 
   override def rollbackTo(height: Int): Try[Unit] = Try(mvs.rollbackTo(height))
@@ -89,7 +89,7 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
     accountBox(p).map(_.value).getOrElse(0L)
   }
 
-  private def accountBox(p: PublicKey25519Proposition): Option[PublicKey25519NoncedBox] = {
+  def accountBox(p: PublicKey25519Proposition): Option[PublicKey25519NoncedBox] = {
     Option(lastIds.get(ByteBuffer.wrap(p.publicKey))).flatMap(k => Option(stateMap.get(k)))
       .flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }

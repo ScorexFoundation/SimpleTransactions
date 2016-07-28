@@ -21,11 +21,11 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,
                                txnonce: Int,
                                amount: Long,
-                               fixedFee: Long,
+                               fee: Long,
                                override val timestamp: Long,
                                signature: Signature25519)
   extends Transaction[PublicKey25519Proposition, LagonakiTransaction] with BytesSerializable with JsonSerializable {
-  override lazy val fee = fixedFee
+  val senderBoxId = sender.id ++ Ints.toByteArray(txnonce - 1)
 
   override def equals(other: Any): Boolean = other match {
     case tx: LagonakiTransaction => signature.signature.sameElements(tx.signature.signature)
@@ -46,14 +46,17 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
   override def validate(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): Try[Unit] = {
     if (state.version == 0) genesisValidate(state)
     else {
-      state.closedBox(sender.id) match {
+      state.closedBox(senderBoxId) match {
         case Some(box: PublicKey25519NoncedBox) =>
           lazy val feeValid = toTry(fee > 0, "Fee is not positive")
+          lazy val amountValid = toTry(amount >= 0, "Amount is negative")
+          lazy val feeAmountSumValid = toTry(amount + fee > 0, "Fee and Amount sum not positive")
           lazy val balanceValid = toTry(box.value >= amount + fee, s"${sender.address} balance is too low")
           lazy val signatureValid = toTry(sender.verify(messageToSign, Sized.wrap(signature.signature)), "wrong signature")
           lazy val nonceValid = toTry(txnonce == box.nonce + 1, "tx nonce isnt' valid")
 
-          nonceValid orElse balanceValid orElse signatureValid orElse feeValid
+          nonceValid.flatMap(t => balanceValid).flatMap(t => amountValid)
+            .flatMap(t => signatureValid).flatMap(t => feeValid)
 
         case Some(nonsense: Any) => Failure(new Exception(s"Wrong box: $nonsense"))
         case None => Failure(new Exception(s"No ${sender.address} found in state"))
@@ -68,14 +71,15 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
   : Try[StateChanges[PublicKey25519Proposition]] = {
     if (state.version == 0) Success(genesisChanges())
     else {
-      state.closedBox(sender.id) match {
+      state.closedBox(senderBoxId) match {
         case Some(oldSender: PublicKey25519NoncedBox) => Success {
-          val newSender = oldSender.copy(value = oldSender.value - amount - fee)
+          val newSender = oldSender.copy(value = oldSender.value - amount - fee, nonce = oldSender.nonce + 1)
+          require(newSender.value >= 0)
 
-          val oldRcvrOpt = state.closedBox(recipient.id)
+          val oldRcvrOpt = state.closedBox(recipient.id) //TODO get blanace
           val newRcvr = oldRcvrOpt.getOrElse {
-            PublicKey25519NoncedBox(recipient, amount)
-          }
+              PublicKey25519NoncedBox(recipient, amount)
+            }
 
           val toRemove: Set[Box[PublicKey25519Proposition]] = oldRcvrOpt match {
             case Some(oldRcvr) => Set(oldSender, oldRcvr)

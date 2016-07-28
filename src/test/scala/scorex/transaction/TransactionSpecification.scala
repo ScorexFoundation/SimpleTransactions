@@ -24,7 +24,7 @@ with TransactionGen {
     forAll(paymentGenerator) { tx: LagonakiTransaction =>
       val sig = tx.signature
 
-      sig.isValid(tx.sender, tx.copy(fixedFee = tx.fee + 1).messageToSign) shouldBe false
+      sig.isValid(tx.sender, tx.copy(fee = tx.fee + 1).messageToSign) shouldBe false
       sig.isValid(tx.sender, tx.copy(amount = tx.amount + 1).messageToSign) shouldBe false
       sig.isValid(tx.sender, tx.copy(timestamp = tx.timestamp + 1).messageToSign) shouldBe false
       sig.isValid(tx.sender, tx.copy(txnonce = tx.txnonce + 1).messageToSign) shouldBe false

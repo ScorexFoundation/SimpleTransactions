@@ -71,7 +71,7 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
 
   def createPayment(sender: PrivateKey25519Holder, recipient: PublicKey25519Proposition, amount: Long, fee: Long): Try[LagonakiTransaction] = Try {
     val time = NTP.correctedTime()
-    val nonce = closedBox(sender.publicCommitment.id).get.asInstanceOf[PublicKey25519NoncedBox].nonce
+    val nonce = accountBox(sender.publicCommitment).get.nonce
     val paymentTx = LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time)
     if (isValid(paymentTx)) onNewOffchainTransaction(paymentTx)
     paymentTx
