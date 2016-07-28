@@ -1,0 +1,12 @@
+{
+  "p2p": {
+    "port": 9093
+  },
+  "rpcPort": 9094,
+  "walletSeed": "aaa",
+  "walletPassword": "aaa",
+  "perma": {
+    "treeDir": "/tmp/scorex-test/data/tree",
+    "authDataStorage": "authDataStorage.mapDB"
+  }
+}
