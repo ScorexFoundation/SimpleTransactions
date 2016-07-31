@@ -24,4 +24,6 @@ trait TransactionGen {
       amount,
       fee,
       timestamp)
+
+  val paymentSeq: Gen[Seq[LagonakiTransaction]] = Gen.listOf(paymentGenerator)
 }
