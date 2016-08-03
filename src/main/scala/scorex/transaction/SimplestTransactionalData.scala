@@ -5,6 +5,7 @@ import scorex.block.TransactionalData
 import scorex.serialization.BytesParseable
 
 import scala.util.Try
+import io.circe.syntax._
 
 case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
   extends TransactionalData[LagonakiTransaction] {
@@ -13,7 +14,7 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
 
   val TransactionSizeLength = 4
 
-  override def json: Json = ???
+  override def json: Json = transactions.map(_.json).asJson
 
   override def bytes: Array[Byte] = {
     if (transactions.nonEmpty) transactions.foldLeft(Array[Byte]())((a, b) => a ++ arrayWithSize(b.bytes))
