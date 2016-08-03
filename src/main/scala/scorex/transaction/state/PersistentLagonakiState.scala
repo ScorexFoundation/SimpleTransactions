@@ -93,8 +93,4 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
     Option(lastIds.get(ByteBuffer.wrap(p.publicKey))).flatMap(k => Option(stateMap.get(k)))
       .flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }
-
-  //TODO implement or throw away?
-  override def balanceWithConfirmations(id: PublicKey25519Proposition, confirmations: Int): Long = ???
-
 }

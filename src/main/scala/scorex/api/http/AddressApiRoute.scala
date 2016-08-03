@@ -28,7 +28,7 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
 
   override lazy val route =
     pathPrefix("addresses") {
-      validate ~ seed ~ confirmationBalance ~ balance ~ generatingBalance ~ verify ~ sign ~ deleteAddress ~ verifyText ~
+      validate ~ seed ~ balance ~ verify ~ sign ~ deleteAddress ~ verifyText ~
         signText ~ seq
     } ~ root ~ create
 
@@ -122,30 +122,6 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
     }
   }
 
-
-  @Path("/generatingbalance/{address}")
-  @ApiOperation(value = "Generating balance",
-    notes = "Account's generating balance(the same as balance atm)",
-    httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "address", value = "Address", required = true, dataType = "String", paramType = "path")
-  ))
-  def generatingBalance: Route = {
-    path("generatingbalance" / Segment) { case address =>
-      getJsonRoute {
-        PublicKey25519Proposition.validPubKey(address) match {
-          case Success(pk) =>
-            Map(
-              "address" -> address.asJson,
-              "balance" -> transactionalModule.generationBalance(pk).asJson
-            ).asJson
-          case _ =>
-            ApiError.invalidAddress
-        }
-      }
-    }
-  }
-
   @Path("/balance/{address}")
   @ApiOperation(value = "Balance", notes = "Account's balance", httpMethod = "GET")
   @ApiImplicitParams(Array(
@@ -154,25 +130,11 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
   def balance: Route = {
     path("balance" / Segment) { case address =>
       getJsonRoute {
-        balanceJson(address, 1)
+        balanceJson(address)
       }
     }
   }
 
-  @Path("/balance/{address}/{confirmations}")
-  @ApiOperation(value = "Confirmed balance", notes = "Balance of {address} after {confirmations}", httpMethod = "GET")
-  @ApiImplicitParams(Array(
-    new ApiImplicitParam(name = "address", value = "Address", required = true, dataType = "String", paramType = "path"),
-    new ApiImplicitParam(name = "confirmations", value = "0", required = true, dataType = "Int", paramType = "path")
-  ))
-  def confirmationBalance: Route = {
-    path("balance" / Segment / IntNumber) { case (address, confirmations) =>
-      //todo: confirmations parameter doesn't work atm
-      getJsonRoute {
-        balanceJson(address, confirmations)
-      }
-    }
-  }
 
   @Path("/seed/{address}")
   @ApiOperation(value = "Seed", notes = "Export seed value for the {address}", httpMethod = "GET")
@@ -242,13 +204,12 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
     }
   }
 
-  private def balanceJson(address: String, confirmations: Int): Json = {
+  private def balanceJson(address: String): Json = {
     PublicKey25519Proposition.validPubKey(address) match {
       case Success(pubkey) =>
         Map(
           "address" -> address.asJson,
-          "confirmations" -> confirmations.asJson,
-          "balance" -> transactionalModule.balanceWithConfirmations(pubkey, confirmations).asJson
+          "balance" -> transactionalModule.balance(pubkey).asJson
         ).asJson
       case _ => ApiError.invalidAddress
     }
