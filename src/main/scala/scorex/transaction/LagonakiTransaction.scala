@@ -26,6 +26,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                signature: Signature25519)
   extends Transaction[PublicKey25519Proposition, LagonakiTransaction] with BytesSerializable with JsonSerializable {
   val senderBoxId = sender.id ++ Ints.toByteArray(txnonce - 1)
+  lazy val id = signature.signature
 
   override def equals(other: Any): Boolean = other match {
     case tx: LagonakiTransaction => signature.signature.sameElements(tx.signature.signature)
