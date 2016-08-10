@@ -6,6 +6,7 @@ import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import io.swagger.annotations._
 import scorex.app.Application
+import scorex.transaction.state.PersistentLagonakiState
 import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
 import scorex.transaction.state.wallet.Payment
 
@@ -18,7 +19,9 @@ import scorex.settings.Settings
 
 @Path("/payment")
 @Api(value = "/payment", description = "Payment operations.", position = 1)
-case class PaymentApiRoute(transactionModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
+case class PaymentApiRoute(transactionModule: SimpleTransactionModule,
+                           state: PersistentLagonakiState,
+                           settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
 
   lazy val wallet = transactionModule.wallet
@@ -49,24 +52,24 @@ case class PaymentApiRoute(transactionModule: SimpleTransactionModule, settings:
         postJsonRoute {
           walletNotExists(wallet).getOrElse {
             decode[Payment](body).toOption match {
-                case Some(payment) =>
-                  val txOpt = transactionModule.createPayment(payment, wallet)
-                  txOpt match {
-                    case Some(tx) =>
-                      tx.validate(transactionModule) match {
-                        case Success(_) =>
-                          tx.json
+              case Some(payment) =>
+                val txOpt = transactionModule.createPayment(payment, wallet)
+                txOpt match {
+                  case Some(tx) =>
+                    tx.validate(state) match {
+                      case Success(_) =>
+                        tx.json
 
-                        case Failure(e) =>
-                          Map("error" -> 0.asJson, "message" -> e.getMessage.asJson).asJson
-                      }
-                    case None =>
-                      ApiError.invalidSender
-                  }
+                      case Failure(e) =>
+                        Map("error" -> 0.asJson, "message" -> e.getMessage.asJson).asJson
+                    }
+                  case None =>
+                    ApiError.invalidSender
+                }
 
-                case _ =>
-                  ApiError.wrongJson
-              }
+              case _ =>
+                ApiError.wrongJson
+            }
           }
         }
       }

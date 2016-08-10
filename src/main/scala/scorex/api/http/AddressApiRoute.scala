@@ -12,18 +12,19 @@ import io.swagger.annotations._
 import scorex.api.http.ApiError._
 import scorex.crypto.encode.Base58
 import scorex.settings.Settings
-import scorex.transaction.SimpleTransactionModule
+import scorex.transaction.Wallet25519Only
 import scorex.transaction.box.proposition.PublicKey25519Proposition
+import scorex.transaction.state.PersistentLagonakiState
 import shapeless.Sized
 
 import scala.util.{Failure, Success, Try}
 
 @Path("/wallet")
 @Api(value = "/wallet/", description = "Info about wallet's accounts and other calls about addresses")
-case class AddressApiRoute(transactionalModule: SimpleTransactionModule, settings: Settings)(implicit val context: ActorRefFactory)
-  extends ApiRoute with CommonTransactionApiFunctions {
-
-  private val wallet = transactionalModule.wallet
+case class AddressApiRoute(wallet: Wallet25519Only,
+                           state: PersistentLagonakiState,
+                           settings: Settings)(implicit val context: ActorRefFactory) extends ApiRoute
+with CommonTransactionApiFunctions {
 
 
   override lazy val route =
@@ -209,7 +210,7 @@ case class AddressApiRoute(transactionalModule: SimpleTransactionModule, setting
       case Success(pubkey) =>
         Map(
           "address" -> address.asJson,
-          "balance" -> transactionalModule.balance(pubkey).asJson
+          "balance" -> state.balance(pubkey).asJson
         ).asJson
       case _ => ApiError.invalidAddress
     }

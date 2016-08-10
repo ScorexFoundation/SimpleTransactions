@@ -12,6 +12,7 @@ trait LagonakiUnconfirmedTransactionsDatabase extends MemoryPool[LagonakiTransac
   trait KeySeqSupport[K] {
     def keySeq(): Seq[K]
   }
+
   val storage: KVStorage[ByteBuffer, LagonakiTransaction, _] with KeySeqSupport[ByteBuffer]
 
   override def put(tx: LagonakiTransaction): MemoryPool[LagonakiTransaction] = {
@@ -41,8 +42,12 @@ trait LagonakiUnconfirmedTransactionsDatabase extends MemoryPool[LagonakiTransac
   override def drain(limit: Int): (Traversable[LagonakiTransaction], MemoryPool[LagonakiTransaction]) = {
     val keys = storage.keySeq().take(limit)
     val txs = keys.flatMap(storage.get)
-    keys.foreach(k =>  storage.unset(k))
+    keys.foreach(k => storage.unset(k))
     (txs, this)
+  }
+
+  override def take(limit: Int): (Traversable[LagonakiTransaction], MemoryPool[LagonakiTransaction]) = {
+    (storage.keySeq().take(limit).flatMap(storage.get), this)
   }
 
   override def remove(tx: LagonakiTransaction): Unit = filter(tx)

@@ -1,13 +1,12 @@
 package scorex.transaction
 
-import akka.actor.ActorRef
+import scorex.NodeStateHolder
 import scorex.settings.Settings
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
-import scorex.transaction.state.database.LagonakiUnconfirmedTransactionsDatabase
 import scorex.transaction.state.wallet.Payment
-import scorex.transaction.state.{PersistentLagonakiState, PrivateKey25519Holder, SecretGenerator25519}
+import scorex.transaction.state.{MinimalState, PersistentLagonakiState, PrivateKey25519Holder, SecretGenerator25519}
 import scorex.transaction.wallet.Wallet
 import scorex.utils._
 import shapeless.Sized
@@ -15,11 +14,11 @@ import shapeless.Sized
 import scala.util.Try
 
 
-class SimpleTransactionModule(override val settings: Settings, override val networkController: ActorRef)
+class SimpleTransactionModule(override val settings: Settings,
+                              override val stateHolder: NodeStateHolder[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, _])
   extends TransactionalModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
-  with LagonakiUnconfirmedTransactionsDatabase
-  with PersistentLagonakiState
   with ScorexLogging {
+
 
   override type SH = PrivateKey25519Holder
 
@@ -29,9 +28,9 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
 
   override val wallet: W = new Wallet25519Only(settings)
 
-  override lazy val dirNameOpt: Option[String] = settings.dataDirOpt
-
   val InitialBalance = 60000000000L
+  //TODO get from config
+  val MaxTXPerBlock = 100
 
   override lazy val genesisData: SimplestTransactionalData = {
     val ipoMembers = List(
@@ -61,6 +60,11 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
   override def transactions(blockData: SimplestTransactionalData): Seq[LagonakiTransaction] =
     blockData.transactions
 
+  override def generateTdata(timeOpt: Long): SimplestTransactionalData = {
+    val txs = stateHolder.mempool.drain(MaxTXPerBlock)._1.toSeq
+    SimplestTransactionalData(stateHolder.state.filterValid(txs))
+  }
+
   def createPayment(payment: Payment, wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule]): Option[LagonakiTransaction] = {
     wallet.correspondingSecret(payment.sender).flatMap { sender: PrivateKey25519Holder =>
       PublicKey25519Proposition.validPubKey(payment.recipient).flatMap { rcp =>
@@ -69,21 +73,21 @@ class SimpleTransactionModule(override val settings: Settings, override val netw
     }
   }
 
-  def createPayment(sender: PrivateKey25519Holder, recipient: PublicKey25519Proposition, amount: Long, fee: Long): Try[LagonakiTransaction] = Try {
-    val time = NTP.correctedTime()
-    val nonce = accountBox(sender.publicCommitment).get.nonce
+  def createPayment(sender: PrivateKey25519Holder,
+                    recipient: PublicKey25519Proposition,
+                    amount: Long,
+                    fee: Long): Try[LagonakiTransaction] = Try {
+    val time = NetworkTime.time()
+    val nonce = stateHolder.state.accountBox(sender.publicCommitment).get.asInstanceOf[PublicKey25519NoncedBox].nonce
     val paymentTx = LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time)
-    if (isValid(paymentTx)) onNewOffchainTransaction(paymentTx)
     paymentTx
   }
 
   override def isValid(blockData: SimplestTransactionalData): Boolean =
     blockData.mbTransactions match {
-      case Some(transactions: Seq[LagonakiTransaction]) =>
-        areValid(transactions)
+      case Some(transactions: Seq[LagonakiTransaction]) => stateHolder.state.areValid(transactions)
       case _ => false
     }
 
-  override def parseBytes(bytes: Array[Byte]): Try[SimplestTransactionalData] =
-    SimplestTransactionalData.parseBytes(bytes)
 }
+

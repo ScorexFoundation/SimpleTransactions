@@ -9,14 +9,16 @@ import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.app.Application
 import scorex.settings.Settings
-import scorex.transaction.SimpleTransactionModule
+import scorex.transaction.state.database.LagonakiUnconfirmedTransactionsDatabase
+import scorex.transaction.{LagonakiTransaction, MemoryPool, SimpleTransactionModule}
 import scorex.transaction.box.proposition.PublicKey25519Proposition
+import scorex.transaction.state.PersistentLagonakiState
 
 import scala.util.Success
 
 @Path("/transactions")
 @Api(value = "/transactions", description = "Information about transactions")
-case class TransactionsApiRoute(transactionalModule: SimpleTransactionModule, override val settings: Settings)
+case class TransactionsApiRoute(pool: LagonakiUnconfirmedTransactionsDatabase, override val settings: Settings)
                                (implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {
 
@@ -96,12 +98,15 @@ def info: Route = {
   }
 } */
 
-  @Path("/unconfirmed")
+  @Path("/unconfirmed/{limit}")
   @ApiOperation(value = "Unconfirmed", notes = "Get list of unconfirmed transactions", httpMethod = "GET")
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(name = "limit", value = "limit ", required = true, dataType = "Int", paramType = "path")
+  ))
   def unconfirmed: Route = {
-    path("unconfirmed") {
+    path("unconfirmed" / IntNumber) { limit =>
       getJsonRoute {
-        transactionalModule.all().map(_.json).asJson
+        pool.take(limit)._1.map(_.json).asJson
       }
     }
   }
