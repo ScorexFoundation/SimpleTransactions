@@ -61,7 +61,7 @@ class SimpleTransactionModule(override val settings: Settings,
     blockData.transactions
 
   override def generateTdata(timeOpt: Long): SimplestTransactionalData = {
-    val txs = stateHolder.mempool.drain(MaxTXPerBlock)._1.toSeq
+    val txs = stateHolder.mempool.take(MaxTXPerBlock)._1.toSeq
     SimplestTransactionalData(stateHolder.state.filterValid(txs))
   }
 
