@@ -3,7 +3,7 @@ package scorex.transaction.state
 import java.nio.ByteBuffer
 
 import org.h2.mvstore.MVStore
-import scorex.block.{Block, TransactionalData}
+import scorex.block.TransactionalData
 import scorex.transaction._
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
@@ -43,32 +43,21 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
     Option(stateMap.get(ByteBuffer.wrap(boxId))).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }
 
-  override def rollbackTo(height: Int): Try[Unit] = Try(mvs.rollbackTo(height))
-
-  override def processBlock(block: Block[PublicKey25519Proposition, _ <: TData, _],
-                            fees: Map[PublicKey25519Proposition, Long]): Try[Unit] = Try {
-    processTransactions(block.transactionalData.asInstanceOf[SimplestTransactionalData].transactions, fees).get
+  override def rollbackTo(height: Int): Try[MinimalState[PublicKey25519Proposition, LagonakiTransaction]] = Try {
+    mvs.rollbackTo(height)
+    this
   }
 
-  def processTransactions(txs: Seq[LagonakiTransaction], fees: Map[PublicKey25519Proposition, Long],
-                          checkNegative: Boolean = true): Try[Unit] = Try {
-    txs.foreach { tx =>
-      val changes = tx.changes(this).get
-      changes.toAppend.foreach { b =>
-        saveBox(b)
-      }
-      changes.toRemove.foreach { b =>
-        stateMap.remove(b.id)
-      }
+  override def applyChanges(changes: StateChanges[PublicKey25519Proposition]):
+  Try[MinimalState[PublicKey25519Proposition, LagonakiTransaction]] = Try {
+    require(changes.minerReward == 0L, "Miner reward should be explicit at this point")
+    changes.toRemove.foreach { b =>
+      stateMap.remove(b.id)
     }
-    fees.foreach { m =>
-      val minerBox = accountBox(m._1).map(b => b.copy(value = b.value + m._2, nonce = b.nonce + 1))
-        .getOrElse(PublicKey25519NoncedBox(m._1, m._2))
-      saveBox(minerBox)
+    changes.toAppend.foreach { b =>
+      saveBox(b)
     }
-
-    mvs.commit()
-    mvs.setStoreVersion(incrementVersion)
+    this
   }
 
   private def saveBox(nb: Box[PublicKey25519Proposition]): BoxValue = {

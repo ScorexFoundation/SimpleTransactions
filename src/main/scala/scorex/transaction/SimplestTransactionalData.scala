@@ -2,6 +2,7 @@ package scorex.transaction
 
 import io.circe.Json
 import scorex.block.TransactionalData
+import scorex.crypto.hash.FastCryptographicHash
 import scorex.serialization.BytesParseable
 
 import scala.util.Try
@@ -12,11 +13,14 @@ case class SimplestTransactionalData(transactions: Seq[LagonakiTransaction])
 
   override val mbTransactions: Option[Traversable[LagonakiTransaction]] = Some(transactions)
 
+  //TODO build authenticated data structure and put rootHash here
+  override def id: Array[Byte] = FastCryptographicHash(bytes)
+
   val TransactionSizeLength = 4
 
-  override def json: Json = transactions.map(_.json).asJson
+  override lazy val json: Json = transactions.map(_.json).asJson
 
-  override def bytes: Array[Byte] = {
+  override lazy val bytes: Array[Byte] = {
     if (transactions.nonEmpty) transactions.foldLeft(Array[Byte]())((a, b) => a ++ arrayWithSize(b.bytes))
     else Array()
   }
