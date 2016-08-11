@@ -1,12 +1,11 @@
 package scorex.transaction
 
-import scorex.NodeStateHolder
 import scorex.settings.Settings
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.wallet.Payment
-import scorex.transaction.state.{MinimalState, PersistentLagonakiState, PrivateKey25519Holder, SecretGenerator25519}
+import scorex.transaction.state.{MinimalState, PrivateKey25519Holder, SecretGenerator25519}
 import scorex.transaction.wallet.Wallet
 import scorex.utils._
 import shapeless.Sized
@@ -15,7 +14,8 @@ import scala.util.Try
 
 
 class SimpleTransactionModule(override val settings: Settings,
-                              override val stateHolder: NodeStateHolder[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, _])
+                              override val mempool: MemoryPool[LagonakiTransaction],
+                              override val state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
   extends TransactionalModule[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData]
   with ScorexLogging {
 
@@ -61,8 +61,8 @@ class SimpleTransactionModule(override val settings: Settings,
     blockData.transactions
 
   override def generateTdata(timeOpt: Long): SimplestTransactionalData = {
-    val txs = stateHolder.mempool.take(MaxTXPerBlock)._1.toSeq
-    SimplestTransactionalData(stateHolder.state.filterValid(txs))
+    val txs = mempool.take(MaxTXPerBlock)._1.toSeq
+    SimplestTransactionalData(state.filterValid(txs))
   }
 
   def createPayment(payment: Payment, wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule]): Option[LagonakiTransaction] = {
@@ -78,14 +78,14 @@ class SimpleTransactionModule(override val settings: Settings,
                     amount: Long,
                     fee: Long): Try[LagonakiTransaction] = Try {
     val time = NetworkTime.time()
-    val nonce = stateHolder.state.accountBox(sender.publicCommitment).get.asInstanceOf[PublicKey25519NoncedBox].nonce
+    val nonce = state.accountBox(sender.publicCommitment).get.asInstanceOf[PublicKey25519NoncedBox].nonce
     val paymentTx = LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time)
     paymentTx
   }
 
   override def isValid(blockData: SimplestTransactionalData): Boolean =
     blockData.mbTransactions match {
-      case Some(transactions: Seq[LagonakiTransaction]) => stateHolder.state.areValid(transactions)
+      case Some(transactions: Seq[LagonakiTransaction]) => state.areValid(transactions)
       case _ => false
     }
 
