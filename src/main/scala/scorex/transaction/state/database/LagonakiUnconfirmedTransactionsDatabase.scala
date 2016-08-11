@@ -2,18 +2,18 @@ package scorex.transaction.state.database
 
 import java.nio.ByteBuffer
 
-import scorex.crypto.authds.storage.KVStorage
+import org.h2.mvstore.MVStore
+import scorex.crypto.authds.storage.{MvStoreKvStorage, KVStorage}
 import scorex.transaction._
 import scorex.utils.ScorexLogging
+import scala.collection.JavaConversions._
 
 
 trait LagonakiUnconfirmedTransactionsDatabase extends MemoryPool[LagonakiTransaction] with ScorexLogging {
 
-  trait KeySeqSupport[K] {
-    def keySeq(): Seq[K]
-  }
+  val dirNameOpt: Option[String]
 
-  val storage: KVStorage[ByteBuffer, LagonakiTransaction, _] with KeySeqSupport[ByteBuffer]
+  private lazy val storage = UTXStorage(dirNameOpt)
 
   override def put(tx: LagonakiTransaction): MemoryPool[LagonakiTransaction] = {
     storage.set(ByteBuffer.wrap(tx.id), tx)
@@ -40,14 +40,14 @@ trait LagonakiUnconfirmedTransactionsDatabase extends MemoryPool[LagonakiTransac
   }
 
   override def drain(limit: Int): (Traversable[LagonakiTransaction], MemoryPool[LagonakiTransaction]) = {
-    val keys = storage.keySeq().take(limit)
+    val keys = storage.keySeq(limit)
     val txs = keys.flatMap(storage.get)
     keys.foreach(k => storage.unset(k))
     (txs, this)
   }
 
   override def take(limit: Int): (Traversable[LagonakiTransaction], MemoryPool[LagonakiTransaction]) = {
-    (storage.keySeq().take(limit).flatMap(storage.get), this)
+    (storage.keySeq(limit).flatMap(storage.get), this)
   }
 
   override def remove(tx: LagonakiTransaction): Unit = filter(tx)
@@ -62,4 +62,9 @@ object LagonakiUnconfirmedTransactionsDatabase {
 
   val MaxTimeForUnconfirmed = 1.hour
   val MaxTransactionsPerBlock = 100
+}
+
+case class UTXStorage(fileNameOpt: Option[String]) extends MvStoreKvStorage[ByteBuffer, LagonakiTransaction] {
+
+  def keySeq(limit: Int): Seq[ByteBuffer] = map.keyList().take(limit)
 }

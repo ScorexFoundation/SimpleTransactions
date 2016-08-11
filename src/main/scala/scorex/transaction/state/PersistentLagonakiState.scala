@@ -24,7 +24,7 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
   type BoxId = Array[Byte]
   type BoxValue = Array[Byte]
 
-  def dirNameOpt: Option[String]
+  val dirNameOpt: Option[String]
 
   protected lazy val mvs: MVStore = {
     val b = new MVStore.Builder()
