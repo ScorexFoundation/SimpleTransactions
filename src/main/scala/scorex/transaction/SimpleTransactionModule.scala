@@ -1,16 +1,11 @@
 package scorex.transaction
 
 import scorex.settings.Settings
-import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
-import scorex.transaction.state.wallet.Payment
 import scorex.transaction.state.{MinimalState, PrivateKey25519Holder, SecretGenerator25519}
-import scorex.transaction.wallet.Wallet
 import scorex.utils._
 import shapeless.Sized
-
-import scala.util.Try
 
 
 class SimpleTransactionModule(override val settings: Settings,
@@ -65,24 +60,6 @@ class SimpleTransactionModule(override val settings: Settings,
     SimplestTransactionalData(state.filterValid(txs))
   }
 
-  def createPayment(payment: Payment, wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule]): Option[LagonakiTransaction] = {
-    wallet.correspondingSecret(payment.sender).flatMap { sender: PrivateKey25519Holder =>
-      PublicKey25519Proposition.validPubKey(payment.recipient).flatMap { rcp =>
-        createPayment(sender, rcp, payment.amount, payment.fee)
-      }.toOption
-    }
-  }
-
-  def createPayment(sender: PrivateKey25519Holder,
-                    recipient: PublicKey25519Proposition,
-                    amount: Long,
-                    fee: Long): Try[LagonakiTransaction] = Try {
-    val time = NetworkTime.time()
-    val nonce = state.accountBox(sender.publicCommitment).get.asInstanceOf[PublicKey25519NoncedBox].nonce
-    val paymentTx = LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time)
-    paymentTx
-  }
-
   override def isValid(blockData: SimplestTransactionalData): Boolean =
     blockData.mbTransactions match {
       case Some(transactions: Seq[LagonakiTransaction]) => state.areValid(transactions)
@@ -90,4 +67,3 @@ class SimpleTransactionModule(override val settings: Settings,
     }
 
 }
-

@@ -6,8 +6,10 @@ import org.scalatest._
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import scorex.settings.Settings
 import scorex.transaction.proof.Signature25519
-import scorex.transaction.state.SecretGenerator25519
+import scorex.transaction.state.{PersistentLagonakiState, SecretGenerator25519}
 import scorex.utils.Random
+
+import scala.util.Failure
 
 
 class StoredStateUnitTests extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks with Matchers
@@ -18,20 +20,32 @@ with PrivateMethodTester with OptionValues with TransactionGen {
   }
 
   val genesisAcc = SecretGenerator25519.generateKeys(Array())
+  val genesisPub = genesisAcc.publicCommitment
   implicit val system = ActorSystem("test")
   val nc = TestActorRef(new Actor {
     def receive = {
       case _ =>
     }
   })
-  val state = new SimpleTransactionModule(settings, nc)
+  implicit val state = new PersistentLagonakiState {
+    override def dirNameOpt: Option[String] = None
+  }
+
   val GenesisBalance = Long.MaxValue - 100
 
   property("State change genesis") {
-    val tx = LagonakiTransaction(genesisAcc, genesisAcc.publicCommitment, 0, GenesisBalance, 0, 0L)
-    state.processTransactions(Seq(tx), Map()).get
-    state.balance(genesisAcc.publicCommitment) shouldBe GenesisBalance
+    state.version shouldBe 0
+    val genesisSignature = Signature25519(Array.fill(64)(0: Byte))
+    val tx = LagonakiTransaction(LagonakiTransaction.GodAccount, genesisPub, 0, GenesisBalance, 0, 0, genesisSignature)
+    tx.validate(state) match {
+      case Failure(e) => throw e
+      case _ =>
+    }
+    state.applyChanges(tx.changes(state).get).get
+    state.balance(genesisPub) shouldBe GenesisBalance
+    state.version shouldBe 1
   }
+
   property("tx validation") {
     val recepient = SecretGenerator25519.generateKeys(Random.randomBytes(32)).publicCommitment
     val tx = LagonakiTransaction(genesisAcc, recepient, 1, Long.MaxValue, 1L, 123L)
@@ -55,13 +69,16 @@ with PrivateMethodTester with OptionValues with TransactionGen {
       whenever(fee > 0 && amount > 0 && amount + fee > 0 &&
         recipient.address != genesisAcc.address && state.balance(genesisAcc.publicCommitment) / 2 > (fee + amount)) {
 
-        val tx = state.createPayment(genesisAcc, recipient.publicCommitment, amount, fee).get
+        val tx = LagonakiTransaction.create(genesisAcc, recipient.publicCommitment, amount, fee).get
 
-        tx.validate(state).isSuccess shouldBe true
+        tx.validate(state) match {
+          case Failure(e) => throw e
+          case _ =>
+        }
 
         val oldS = state.balance(tx.sender)
         val oldR = state.balance(tx.recipient)
-        state.processTransactions(Seq(tx), Map()).get
+        state.applyChanges(tx.changes(state).get.copy(minerReward = 0L)).get
         state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
         state.balance(tx.recipient) shouldBe (oldR + tx.amount)
       }
@@ -76,13 +93,13 @@ with PrivateMethodTester with OptionValues with TransactionGen {
       whenever(fee > 0 && amount > 0 && amount + fee > 0 &&
         recipient.address != genesisAcc.address && state.balance(genesisAcc.publicCommitment) / 2 > (fee + amount)) {
 
-        val tx = state.createPayment(genesisAcc, recipient.publicCommitment, amount, fee).get
+        val tx = LagonakiTransaction.create(genesisAcc, recipient.publicCommitment, amount, fee).get
 
         tx.validate(state).isSuccess shouldBe true
 
         val oldS = state.balance(tx.sender)
         val oldR = state.balance(tx.recipient)
-        state.processTransactions(Seq(tx), Map()).get
+        state.applyChanges(tx.changes(state).get.copy(minerReward = 0L)).get
         state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
         state.balance(tx.recipient) shouldBe (oldR + tx.amount)
       }

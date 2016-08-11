@@ -11,8 +11,10 @@ import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
 import scorex.transaction.box.proposition.{PublicKey25519Proposition, PublicKeyProposition}
 import scorex.transaction.proof.Signature25519
+import scorex.transaction.state.wallet.Payment
 import scorex.transaction.state.{PersistentLagonakiState, MinimalState, PrivateKey25519Holder}
-import scorex.utils.toTry
+import scorex.transaction.wallet.Wallet
+import scorex.utils.{NetworkTime, toTry}
 import shapeless.Sized
 
 import scala.util.{Success, Failure, Try}
@@ -78,7 +80,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
           require(newSender.value >= 0)
 
           val oldRcvrOpt = state.asInstanceOf[PersistentLagonakiState].accountBox(recipient)
-          val newRcvr:Box[PublicKey25519Proposition]= oldRcvrOpt.map(o => o.copy(value = o.value + amount)).getOrElse {
+          val newRcvr: Box[PublicKey25519Proposition] = oldRcvrOpt.map(o => o.copy(value = o.value + amount)).getOrElse {
             PublicKey25519NoncedBox(recipient, amount)
           }
 
@@ -203,4 +205,27 @@ object LagonakiTransaction extends BytesParseable[LagonakiTransaction] {
       Longs.toByteArray(fee)
     )
   }
+
+
+  def create(payment: Payment,
+             wallet: Wallet[PublicKey25519Proposition, SimpleTransactionModule])
+            (implicit state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): Option[LagonakiTransaction] = {
+    wallet.correspondingSecret(payment.sender).flatMap { sender: PrivateKey25519Holder =>
+      PublicKey25519Proposition.validPubKey(payment.recipient).flatMap { rcp =>
+        create(sender, rcp, payment.amount, payment.fee)
+      }.toOption
+    }
+  }
+
+  def create(sender: PrivateKey25519Holder,
+             recipient: PublicKey25519Proposition,
+             amount: Long,
+             fee: Long)
+            (implicit state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): Try[LagonakiTransaction] =
+    Try {
+      val time = NetworkTime.time()
+      val nonce = state.accountBox(sender.publicCommitment).get.asInstanceOf[PublicKey25519NoncedBox].nonce
+      val paymentTx = LagonakiTransaction(sender, recipient, nonce + 1, amount, fee, time)
+      paymentTx
+    }
 }

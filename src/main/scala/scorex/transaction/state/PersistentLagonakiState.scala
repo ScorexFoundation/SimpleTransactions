@@ -57,6 +57,8 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
     changes.toAppend.foreach { b =>
       saveBox(b)
     }
+    incrementVersion
+    mvs.commit()
     this
   }
 

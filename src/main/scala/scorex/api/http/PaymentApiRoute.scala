@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Route
 import io.swagger.annotations._
 import scorex.app.Application
 import scorex.transaction.state.PersistentLagonakiState
-import scorex.transaction.{SimpleTransactionModule, Wallet25519Only}
+import scorex.transaction.{LagonakiTransaction, SimpleTransactionModule, Wallet25519Only}
 import scorex.transaction.state.wallet.Payment
 
 import scala.util.{Failure, Success}
@@ -19,12 +19,10 @@ import scorex.settings.Settings
 
 @Path("/payment")
 @Api(value = "/payment", description = "Payment operations.", position = 1)
-case class PaymentApiRoute(transactionModule: SimpleTransactionModule,
+case class PaymentApiRoute(wallet: Wallet25519Only,
                            state: PersistentLagonakiState,
                            settings: Settings)(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonTransactionApiFunctions {
-
-  lazy val wallet = transactionModule.wallet
 
   override lazy val route = payment
 
@@ -53,7 +51,7 @@ case class PaymentApiRoute(transactionModule: SimpleTransactionModule,
           walletNotExists(wallet).getOrElse {
             decode[Payment](body).toOption match {
               case Some(payment) =>
-                val txOpt = transactionModule.createPayment(payment, wallet)
+                val txOpt = LagonakiTransaction.create(payment, wallet)(state)
                 txOpt match {
                   case Some(tx) =>
                     tx.validate(state) match {
