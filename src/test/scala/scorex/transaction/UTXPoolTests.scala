@@ -15,9 +15,7 @@ import scala.util.Failure
 
 class UTXPoolTests extends PropSpec with PropertyChecks with Matchers with TransactionGen {
 
-  val mempool = new LagonakiUnconfirmedTransactionsDatabase {
-    override val dirNameOpt: Option[String] = None
-  }
+  val mempool = new LagonakiUnconfirmedTransactionsDatabase(None)
 
   property("put/get transactions") {
     forAll(paymentGenerator) { tx: LagonakiTransaction =>

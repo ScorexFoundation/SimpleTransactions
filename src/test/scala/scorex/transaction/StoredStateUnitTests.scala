@@ -27,9 +27,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
       case _ =>
     }
   })
-  implicit val state = new PersistentLagonakiState {
-    override def dirNameOpt: Option[String] = None
-  }
+  implicit val state = new PersistentLagonakiState(None)
 
   val GenesisBalance = Long.MaxValue - 100
 
