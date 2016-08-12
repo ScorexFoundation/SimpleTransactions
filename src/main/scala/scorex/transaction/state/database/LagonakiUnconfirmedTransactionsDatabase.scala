@@ -2,16 +2,15 @@ package scorex.transaction.state.database
 
 import java.nio.ByteBuffer
 
-import org.h2.mvstore.MVStore
-import scorex.crypto.authds.storage.{MvStoreKvStorage, KVStorage}
+import scorex.crypto.authds.storage.MvStoreKvStorage
 import scorex.transaction._
 import scorex.utils.ScorexLogging
+
 import scala.collection.JavaConversions._
 
 
-trait LagonakiUnconfirmedTransactionsDatabase extends MemoryPool[LagonakiTransaction] with ScorexLogging {
-
-  val dirNameOpt: Option[String]
+class LagonakiUnconfirmedTransactionsDatabase(dirNameOpt: Option[String]) extends MemoryPool[LagonakiTransaction]
+with ScorexLogging {
 
   private lazy val storage = UTXStorage(dirNameOpt)
 

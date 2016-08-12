@@ -19,12 +19,10 @@ import scala.util.Try
   *
   * Use apply method of PersistentLagonakiState object to create new instance
   */
-trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
+class PersistentLagonakiState(dirNameOpt: Option[String]) extends LagonakiState with ScorexLogging {
   type TData = TransactionalData[LagonakiTransaction]
   type BoxId = Array[Byte]
   type BoxValue = Array[Byte]
-
-  val dirNameOpt: Option[String]
 
   protected lazy val mvs: MVStore = {
     val b = new MVStore.Builder()
@@ -36,8 +34,8 @@ trait PersistentLagonakiState extends LagonakiState with ScorexLogging {
 
   protected lazy val heightMap = mvs.openMap[String, Int]("height")
 
-  protected val stateMap = mvs.openMap[ByteBuffer, BoxValue]("state")
-  protected val lastIds = mvs.openMap[ByteBuffer, ByteBuffer]("lastId")
+  protected lazy val stateMap = mvs.openMap[ByteBuffer, BoxValue]("state")
+  protected lazy val lastIds = mvs.openMap[ByteBuffer, ByteBuffer]("lastId")
 
   override def closedBox(boxId: BoxId): Option[Box[PublicKey25519Proposition]] = {
     Option(stateMap.get(ByteBuffer.wrap(boxId))).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
