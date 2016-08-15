@@ -3,7 +3,7 @@ package scorex.transaction.state
 import java.nio.ByteBuffer
 
 import org.h2.mvstore.MVStore
-import scorex.block.TransactionalData
+import scorex.block.{StateChanges, TransactionalData}
 import scorex.transaction._
 import scorex.transaction.account.PublicKey25519NoncedBox
 import scorex.transaction.box.Box
@@ -48,7 +48,6 @@ class PersistentLagonakiState(dirNameOpt: Option[String]) extends LagonakiState 
 
   override def applyChanges(changes: StateChanges[PublicKey25519Proposition]):
   Try[MinimalState[PublicKey25519Proposition, LagonakiTransaction]] = Try {
-    require(changes.minerReward == 0L, "Miner reward should be explicit at this point")
     changes.toRemove.foreach { b =>
       stateMap.remove(b.id)
     }
