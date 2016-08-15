@@ -59,11 +59,4 @@ class SimpleTransactionModule(override val settings: Settings,
     val txs = mempool.take(MaxTXPerBlock)._1.toSeq
     SimplestTransactionalData(state.filterValid(txs))
   }
-
-  override def isValid(blockData: SimplestTransactionalData): Boolean =
-    blockData.mbTransactions match {
-      case Some(transactions: Seq[LagonakiTransaction]) => state.areValid(transactions)
-      case _ => false
-    }
-
 }
