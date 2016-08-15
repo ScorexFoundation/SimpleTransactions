@@ -4,7 +4,9 @@ import akka.actor.{Actor, ActorSystem}
 import akka.testkit.TestActorRef
 import org.scalatest._
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
+import scorex.block.StateChanges
 import scorex.settings.Settings
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.{PersistentLagonakiState, SecretGenerator25519}
 import scorex.utils.Random
@@ -39,7 +41,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
       case Failure(e) => throw e
       case _ =>
     }
-    state.applyChanges(tx.changes(state).get).get
+    state.applyChanges(stateChanges(tx.changes(state).get)).get
     state.balance(genesisPub) shouldBe GenesisBalance
     state.version shouldBe 1
   }
@@ -76,7 +78,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
 
         val oldS = state.balance(tx.sender)
         val oldR = state.balance(tx.recipient)
-        state.applyChanges(tx.changes(state).get.copy(minerReward = 0L)).get
+        state.applyChanges(stateChanges(tx.changes(state).get)).get
         state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
         state.balance(tx.recipient) shouldBe (oldR + tx.amount)
       }
@@ -97,7 +99,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
 
         val oldS = state.balance(tx.sender)
         val oldR = state.balance(tx.recipient)
-        state.applyChanges(tx.changes(state).get.copy(minerReward = 0L)).get
+        state.applyChanges(stateChanges(tx.changes(state).get)).get
         state.balance(tx.sender) shouldBe (oldS - tx.amount - tx.fee)
         state.balance(tx.recipient) shouldBe (oldR + tx.amount)
       }
@@ -105,4 +107,7 @@ with PrivateMethodTester with OptionValues with TransactionGen {
   }
 
 
+  def stateChanges(ch: TransactionChanges[PublicKey25519Proposition]): StateChanges[PublicKey25519Proposition] = {
+    StateChanges(ch.toAppend, ch.toRemove)
+  }
 }

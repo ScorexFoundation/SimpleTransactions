@@ -12,12 +12,12 @@ import scorex.transaction.box.Box
 import scorex.transaction.box.proposition.{PublicKey25519Proposition, PublicKeyProposition}
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.wallet.Payment
-import scorex.transaction.state.{PersistentLagonakiState, MinimalState, PrivateKey25519Holder}
+import scorex.transaction.state.{MinimalState, PersistentLagonakiState, PrivateKey25519Holder}
 import scorex.transaction.wallet.Wallet
 import scorex.utils.{NetworkTime, toTry}
 import shapeless.Sized
 
-import scala.util.{Success, Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 case class LagonakiTransaction(sender: PublicKey25519Proposition,
                                recipient: PublicKey25519Proposition,
@@ -67,11 +67,11 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
     }
   }
 
-  def genesisChanges(): StateChanges[PublicKey25519Proposition] =
-    StateChanges(Set(), Set(PublicKey25519NoncedBox(recipient, amount)), 0)
+  def genesisChanges(): TransactionChanges[PublicKey25519Proposition] =
+    TransactionChanges(Set(), Set(PublicKey25519NoncedBox(recipient, amount)), 0)
 
   override def changes(state: MinimalState[PublicKey25519Proposition, LagonakiTransaction])
-  : Try[StateChanges[PublicKey25519Proposition]] = {
+  : Try[TransactionChanges[PublicKey25519Proposition]] = {
     if (state.version == 0) Success(genesisChanges())
     else {
       state.closedBox(senderBoxId) match {
@@ -91,7 +91,7 @@ case class LagonakiTransaction(sender: PublicKey25519Proposition,
 
           val toAppend = Set(newRcvr, newSender)
 
-          StateChanges(toRemove, toAppend, fee)
+          TransactionChanges(toRemove, toAppend, fee)
         }
         case _ => Failure(new Exception("Wrong kind of box"))
       }
