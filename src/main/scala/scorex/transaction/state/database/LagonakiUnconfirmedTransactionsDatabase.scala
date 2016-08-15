@@ -12,7 +12,7 @@ import scala.collection.JavaConversions._
 class LagonakiUnconfirmedTransactionsDatabase(dirNameOpt: Option[String]) extends MemoryPool[LagonakiTransaction]
 with ScorexLogging {
 
-  private lazy val storage = UTXStorage(dirNameOpt)
+  private lazy val storage = UTXStorage(dirNameOpt.map(_ + "/UTXStorage.dat"))
 
   override def put(tx: LagonakiTransaction): MemoryPool[LagonakiTransaction] = {
     storage.set(ByteBuffer.wrap(tx.id), tx)
