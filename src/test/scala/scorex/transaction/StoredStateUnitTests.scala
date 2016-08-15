@@ -108,6 +108,6 @@ with PrivateMethodTester with OptionValues with TransactionGen {
 
 
   def stateChanges(ch: TransactionChanges[PublicKey25519Proposition]): StateChanges[PublicKey25519Proposition] = {
-    StateChanges(ch.toAppend, ch.toRemove)
+    StateChanges(ch.toRemove, ch.toAppend)
   }
 }
