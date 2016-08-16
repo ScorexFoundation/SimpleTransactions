@@ -1,7 +1,6 @@
 package scorex.transaction.state.database
 
-import java.nio.ByteBuffer
-
+import io.iohk.iodb.ByteArrayWrapper
 import scorex.crypto.authds.storage.MvStoreKvStorage
 import scorex.transaction._
 import scorex.utils.ScorexLogging
@@ -15,12 +14,12 @@ with ScorexLogging {
   private lazy val storage = UTXStorage(dirNameOpt.map(_ + "/UTXStorage.dat"))
 
   override def put(tx: LagonakiTransaction): MemoryPool[LagonakiTransaction] = {
-    storage.set(ByteBuffer.wrap(tx.id), tx)
+    storage.set(ByteArrayWrapper(tx.id), tx)
     this
   }
 
   override def filter(id: Array[Byte]): MemoryPool[LagonakiTransaction] = {
-    storage.unset(ByteBuffer.wrap(id))
+    storage.unset(ByteArrayWrapper(id))
     this
   }
 
@@ -51,7 +50,7 @@ with ScorexLogging {
 
   override def remove(tx: LagonakiTransaction): Unit = filter(tx)
 
-  override def getById(id: Array[Byte]): Option[LagonakiTransaction] = storage.get(ByteBuffer.wrap(id))
+  override def getById(id: Array[Byte]): Option[LagonakiTransaction] = storage.get(ByteArrayWrapper(id))
 }
 
 
@@ -63,7 +62,7 @@ object LagonakiUnconfirmedTransactionsDatabase {
   val MaxTransactionsPerBlock = 100
 }
 
-case class UTXStorage(fileNameOpt: Option[String]) extends MvStoreKvStorage[ByteBuffer, LagonakiTransaction] {
+case class UTXStorage(fileNameOpt: Option[String]) extends MvStoreKvStorage[ByteArrayWrapper, LagonakiTransaction] {
 
-  def keySeq(limit: Int): Seq[ByteBuffer] = map.keyList().take(limit)
+  def keySeq(limit: Int): Seq[ByteArrayWrapper] = map.keyList().take(limit)
 }

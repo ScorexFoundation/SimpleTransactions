@@ -1,7 +1,6 @@
 package scorex.transaction.state
 
-import java.nio.ByteBuffer
-
+import io.iohk.iodb.ByteArrayWrapper
 import org.h2.mvstore.MVStore
 import scorex.block.{StateChanges, TransactionalData}
 import scorex.transaction._
@@ -34,11 +33,11 @@ class PersistentLagonakiState(dirNameOpt: Option[String]) extends LagonakiState 
 
   protected lazy val heightMap = mvs.openMap[String, Int]("height")
 
-  protected lazy val stateMap = mvs.openMap[ByteBuffer, BoxValue]("state")
-  protected lazy val lastIds = mvs.openMap[ByteBuffer, ByteBuffer]("lastId")
+  protected lazy val stateMap = mvs.openMap[ByteArrayWrapper, BoxValue]("state")
+  protected lazy val lastIds = mvs.openMap[ByteArrayWrapper, ByteArrayWrapper]("lastId")
 
   override def closedBox(boxId: BoxId): Option[Box[PublicKey25519Proposition]] = {
-    Option(stateMap.get(ByteBuffer.wrap(boxId))).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
+    Option(stateMap.get(ByteArrayWrapper(boxId))).flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }
 
   override def rollbackTo(height: Int): Try[MinimalState[PublicKey25519Proposition, LagonakiTransaction]] = Try {
@@ -60,9 +59,9 @@ class PersistentLagonakiState(dirNameOpt: Option[String]) extends LagonakiState 
   }
 
   private def saveBox(nb: Box[PublicKey25519Proposition]): BoxValue = {
-    lastIds.put(ByteBuffer.wrap(nb.proposition.publicKey), ByteBuffer.wrap(nb.id))
+    lastIds.put(ByteArrayWrapper(nb.proposition.publicKey), ByteArrayWrapper(nb.id))
 
-    stateMap.put(ByteBuffer.wrap(nb.id), nb.bytes)
+    stateMap.put(ByteArrayWrapper(nb.id), nb.bytes)
   }
 
   override def version: Int = Option(heightMap.get("stateHeight")).getOrElse(0)
@@ -78,7 +77,7 @@ class PersistentLagonakiState(dirNameOpt: Option[String]) extends LagonakiState 
   }
 
   def accountBox(p: PublicKey25519Proposition): Option[PublicKey25519NoncedBox] = {
-    Option(lastIds.get(ByteBuffer.wrap(p.publicKey))).flatMap(k => Option(stateMap.get(k)))
+    Option(lastIds.get(ByteArrayWrapper(p.publicKey))).flatMap(k => Option(stateMap.get(k)))
       .flatMap(v => PublicKey25519NoncedBox.parseBytes(v).toOption)
   }
 }
